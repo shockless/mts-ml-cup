@@ -1,0 +1,8 @@
+numpy
+pandas
+polars
+catboost
+scikit-learn
+implicit
+matplotlib
+seaborn
