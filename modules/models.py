@@ -1,22 +1,24 @@
 import torch
 from torch import nn
 
-from layers import EventEncoder
+from seq2seq_modules.layers import EventEncoder
 
 
 class LSTMModel(nn.Module):
-    def __init__(self,
-                 cat_feature_indexes: list,
-                 vocab_sizes: list,
-                 cont_feature_indexes: list,
-                 encoder_hidden_dim: int,
-                 hidden_dim: int,
-                 output_dim: int,
-                 num_layers: int = 3,
-                 bias: bool = True,
-                 batch_first: bool = True,
-                 bidirectional: bool = False,
-                 dropout: float = 0.1):
+    def __init__(
+        self,
+        cat_feature_indexes: list,
+        vocab_sizes: list,
+        cont_feature_indexes: list,
+        encoder_hidden_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        num_layers: int = 3,
+        bias: bool = True,
+        batch_first: bool = True,
+        bidirectional: bool = False,
+        dropout: float = 0.1,
+    ):
         super().__init__()
 
         self.cat_feature_indexes = cat_feature_indexes
@@ -36,7 +38,7 @@ class LSTMModel(nn.Module):
             vocab_sizes=self.vocab_sizes,
             cont_feature_indexes=self.cont_feature_indexes,
             hidden_dim=self.encoder_hidden_dim,
-            output_dim=self.hidden_dim
+            output_dim=self.hidden_dim,
         )
 
         self.seq2seq = nn.LSTM(
@@ -46,7 +48,7 @@ class LSTMModel(nn.Module):
             bias=self.bias,
             batch_first=self.batch_first,
             bidirectional=self.bidirectional,
-            dropout=self.dropout
+            dropout=self.dropout,
         )
 
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
@@ -57,3 +59,8 @@ class LSTMModel(nn.Module):
         out = self.out(h[:, :, -1])
 
         return out
+
+
+# ADD: GRU
+# ADD: Attention LSTM
+# ADD: BERT
