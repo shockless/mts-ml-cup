@@ -33,7 +33,7 @@ class Preprocessor:
     def to_tensor(self, sequences: list) -> list:
         return [torch.tensor(sequence) for sequence in tqdm(sequences)]
 
-    def pad_and_truncate(self, sequences: list) -> list:
+    def pad_and_truncate(self, sequences: list) -> tuple:
         attention_masks = []
 
         for i in tqdm(range(len(sequences))):
@@ -63,11 +63,12 @@ class Preprocessor:
                 sequences[i] = sequences[i][-(self.max_len - 1) :]
                 attention_masks.append(np.ones((sequences[i].shape[0])))
 
-        return sequences
+        return sequences, attention_masks
 
-    def transform(self, dataset: pd.DataFrame) -> list:
+    def transform(self, dataset: pd.DataFrame) -> tuple:
         sequences = self.get_sequences(dataset)
-        sequences = self.pad_and_truncate(sequences)
+        sequences, attention_masks = self.pad_and_truncate(sequences)
         sequences = self.to_tensor(sequences)
+        attention_masks = self.to_tensor(attention_masks)
 
-        return sequences
+        return sequences, attention_masks
