@@ -53,10 +53,11 @@ class LSTMModel(nn.Module):
 
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
-    def forward(self, input_features: torch.Tensor) -> torch.Tensor:
-        event_embeddings = self.event_embedding(input_features)
+    def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
+        event_embeddings = self.event_embedding(input_features[attention_mask])
+        event_embeddings = torch.cat([input_features[~attention_mask], event_embeddings], dim=1)
         x, (h, c) = self.seq2seq(event_embeddings)
-        out = self.out(h[:, :, -1])
+        out = self.out(h[:, -1])
 
         return out
 
@@ -110,10 +111,14 @@ class GRUModel(nn.Module):
 
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
-    def forward(self, input_features: torch.Tensor) -> torch.Tensor:
-        event_embeddings = self.event_embedding(input_features)
-        x, h= self.seq2seq(event_embeddings)
-        out = self.out(h[:, :, -1])
+    def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
+        event_embeddings = self.event_embedding(input_features[attention_mask])
+        event_embeddings = torch.cat([input_features[~attention_mask], event_embeddings], dim=1)
+        x, h = self.seq2seq(event_embeddings)
+        out = self.out(h[:, -1])
 
         return out
 
+
+# FIX: BERT
+# ADD: Attention LSTM
