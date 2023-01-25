@@ -5,7 +5,7 @@ from utils import age_bucket
 
 def GENDER_METRIC(logits, targets):
     score = AUROC(task="binary")
-    return {"Gender ROC AUC": score(logits, targets)}
+    return {"Gender GINI": 2 * score(logits, targets) - 1}
 
 
 def AGE_METRIC(logits, targets):
