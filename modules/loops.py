@@ -171,7 +171,11 @@ def cross_validation(
                     metric_func,
                 )
                 eval_metrics = eval_epoch(
-                    model, eval_loader, loss_function, device, metric_func
+                    model,
+                    eval_loader,
+                    loss_function,
+                    device,
+                    metric_func
                 )
 
                 print(f"EPOCH: {epoch_i}")

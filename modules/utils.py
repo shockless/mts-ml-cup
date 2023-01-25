@@ -21,7 +21,8 @@ def my_reset(*varnames):
 
 
 def reduce_mem_usage(df):
-    """iterate through all the columns of a dataframe and modify the data type
+    """
+    iterate through all the columns of a dataframe and modify the data type
     to reduce memory usage.
     """
     start_mem = df.memory_usage().sum() / 1024**2
