@@ -81,5 +81,5 @@ class PositionalEncoding(nn.Module):
         Args:
             x: Tensor, shape [batch_size, seq_len, embedding_dim]
         """
-        x = x + self.pe[:, :x.size(0)]
+        x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
