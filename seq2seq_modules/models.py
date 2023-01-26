@@ -4,20 +4,21 @@ from torch import nn
 from seq2seq_modules.layers import EventEncoder
 from utils import generate_square_subsequent_mask
 
+
 class LSTMModel(nn.Module):
     def __init__(
-        self,
-        cat_feature_indexes: list,
-        vocab_sizes: list,
-        cont_feature_indexes: list,
-        encoder_hidden_dim: int,
-        hidden_dim: int,
-        output_dim: int,
-        num_layers: int = 3,
-        bias: bool = True,
-        batch_first: bool = True,
-        bidirectional: bool = False,
-        dropout: float = 0.1,
+            self,
+            cat_feature_indexes: list,
+            vocab_sizes: list,
+            cont_feature_indexes: list,
+            encoder_hidden_dim: int,
+            hidden_dim: int,
+            output_dim: int,
+            num_layers: int = 3,
+            bias: bool = True,
+            batch_first: bool = True,
+            bidirectional: bool = False,
+            dropout: float = 0.1,
     ):
         super().__init__()
 
@@ -64,18 +65,18 @@ class LSTMModel(nn.Module):
 
 class GRUModel(nn.Module):
     def __init__(
-        self,
-        cat_feature_indexes: list,
-        vocab_sizes: list,
-        cont_feature_indexes: list,
-        encoder_hidden_dim: int,
-        hidden_dim: int,
-        output_dim: int,
-        num_layers: int = 3,
-        bias: bool = True,
-        batch_first: bool = True,
-        bidirectional: bool = False,
-        dropout: float = 0.1,
+            self,
+            cat_feature_indexes: list,
+            vocab_sizes: list,
+            cont_feature_indexes: list,
+            encoder_hidden_dim: int,
+            hidden_dim: int,
+            output_dim: int,
+            num_layers: int = 3,
+            bias: bool = True,
+            batch_first: bool = True,
+            bidirectional: bool = False,
+            dropout: float = 0.1,
     ):
         super().__init__()
 
@@ -122,20 +123,20 @@ class GRUModel(nn.Module):
 
 class MeanBERTModel(nn.Module):
     def __init__(
-        self,
-        cat_feature_indexes: list,
-        vocab_sizes: list,
-        cont_feature_indexes: list,
-        encoder_hidden_dim: int,
-        hidden_dim: int,
-        dim_feedforward: int,
-        output_dim: int,
-        num_layers: int = 3,
-        nhead: int = 4,
-        batch_first: bool = True,
-        use_mask: bool = True,
-        use_key_padding_mask: bool = True,
-        dropout: float = 0.1,
+            self,
+            cat_feature_indexes: list,
+            vocab_sizes: list,
+            cont_feature_indexes: list,
+            encoder_hidden_dim: int,
+            hidden_dim: int,
+            dim_feedforward: int,
+            output_dim: int,
+            num_layers: int = 3,
+            nhead: int = 4,
+            batch_first: bool = True,
+            use_mask: bool = True,
+            use_key_padding_mask: bool = True,
+            dropout: float = 0.1,
     ):
         super().__init__()
 
@@ -182,7 +183,7 @@ class MeanBERTModel(nn.Module):
         event_embeddings[~attention_mask] *= 0
 
         if self.use_mask:
-            mask = self.generate_square_subsequent_mask(T).to(input_features.device)
+            mask = generate_square_subsequent_mask(T).to(input_features.device)
         else:
             mask = None
 
@@ -275,7 +276,7 @@ class StarterBERTModel(nn.Module):
         event_embeddings[~attention_mask] *= 0
 
         if self.use_mask:
-            mask = self.generate_square_subsequent_mask(T + 1).to(input_features.device)
+            mask = generate_square_subsequent_mask(T + 1).to(input_features.device)
         else:
             mask = None
 
