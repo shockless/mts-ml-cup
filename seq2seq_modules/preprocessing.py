@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
+import polars as pl
 from tests import torch
 from tqdm import tqdm
 
 
-class Preprocessor:
+class PandasPreprocessor:
     def __init__(self, agg_column: str, time_column: str, max_len: int, padding_side: str = "left"):
         self.agg_column = agg_column
         self.time_column = time_column
@@ -90,3 +91,28 @@ class Preprocessor:
         attention_masks = self.to_tensor(attention_masks)
 
         return sequences, attention_masks
+
+
+class PolarsPreprocessor(PandasPreprocessor):
+    def __init__(self, agg_column: str, time_column: str, max_len: int, padding_side: str = "left"):
+        super().__init__(agg_column, time_column, max_len, padding_side)
+
+    def get_sequences(self, dataset: pl.DataFrame) -> list:
+        dataset = dataset.sort(
+            by=[self.agg_column, self.time_column], reverse=[False, False]
+        )
+
+        sequences = []
+        agg_col = dataset[self.agg_column].to_numpy()
+        dataset = dataset.to_numpy()
+
+        curr_ind = 0
+        curr_val = agg_col[0]
+        for i in tqdm(range(curr_val.shape[0])):
+            if agg_col[i] != curr_val:
+                sequences.append(dataset[curr_ind:i])
+
+                curr_ind = i
+                curr_val = agg_col[i]
+
+        return sequences

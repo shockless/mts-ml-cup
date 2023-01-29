@@ -8,6 +8,8 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from tqdm import tqdm
 import wandb
 
+from utils import save_model
+
 
 def train_epoch(
     model, data_loader, loss_function, optimizer, scheduler, device, metric_func
@@ -195,6 +197,7 @@ def single_model_tr(
     metric_func,
     optimizer,
     get_scheduler,
+    save_folder,
     device=torch.device("cuda"),
     random_state: int = 69,
     shuffle: bool = True,
@@ -228,6 +231,8 @@ def single_model_tr(
         num_training_steps=total_steps,
     )
 
+    os.mkdir(save_folder)
+
     for epoch_i in range(0, epochs):
         if epoch_i >= start_epoch:
             train_metrics = train_epoch(
@@ -239,6 +244,8 @@ def single_model_tr(
                 device,
                 metric_func,
             )
-            # ADD: save model
+
+            save_model(model, save_folder, f"epoch_{epoch_i}")
+
             print("EPOCH", epoch_i)
             print(train_metrics)
