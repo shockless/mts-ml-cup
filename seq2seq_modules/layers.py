@@ -83,3 +83,27 @@ class PositionalEncoding(nn.Module):
         """
         x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
+
+
+class TrainablePositionalEncoding(nn.Module):
+
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 128):
+        super().__init__()
+        self.d_model = d_model
+        self.dropout = dropout
+        self.max_len = max_len
+
+        self.embedding = nn.Embedding(num_embeddings=self.max_len, embedding_dim=self.d_model)
+        self.dropout = nn.Dropout(p=self.dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        B, T, H = x.size()
+
+        position = torch.arange(self.max_len).expand(B, -1)
+        x = self.embedding(position)
+
+        return self.dropout(x)

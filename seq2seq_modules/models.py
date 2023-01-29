@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from seq2seq_modules.layers import EventEncoder
+from seq2seq_modules.layers import TrainablePositionalEncoding, PositionalEncoding, EventEncoder
 from utils import generate_square_subsequent_mask
 
 
@@ -134,6 +134,8 @@ class MeanBERTModel(nn.Module):
             num_layers: int = 3,
             nhead: int = 4,
             batch_first: bool = True,
+            pe_type: str = "sinusoid",
+            max_len: int = None,
             use_mask: bool = True,
             use_key_padding_mask: bool = True,
             dropout: float = 0.1,
@@ -149,6 +151,8 @@ class MeanBERTModel(nn.Module):
         self.output_dim = output_dim
         self.num_layers = num_layers
         self.nhead = nhead
+        self.pe_type = pe_type
+        self.max_len = max_len
         self.use_mask = use_mask
         self.use_key_padding_mask = use_key_padding_mask
         self.batch_first = batch_first
@@ -161,6 +165,18 @@ class MeanBERTModel(nn.Module):
             hidden_dim=self.encoder_hidden_dim,
             output_dim=self.hidden_dim,
         )
+
+        if self.pe_type == "sinusoid":
+            self.pe = PositionalEncoding(
+                d_model=self.hidden_dim,
+                max_len=self.max_len
+            )
+
+        elif self.pe_type == "trainable":
+            self.pe = TrainablePositionalEncoding(
+                d_model=self.hidden_dim,
+                max_len=self.max_len
+            )
 
         self.seq2seq = nn.TransformerEncoder(
             encoder_layer=nn.TransformerEncoderLayer(
@@ -192,13 +208,15 @@ class MeanBERTModel(nn.Module):
         else:
             key_padding_mask = None
 
+        x = self.pe(event_embeddings)
+
         x = self.seq2seq(
-            event_embeddings,
+            x,
             mask=mask,
             src_key_padding_mask=key_padding_mask
         )
 
-        out = self.out(x.mean(dim=1))
+        out = self.out(x[attention_mask].mean(dim=1))
 
         return out
 
@@ -216,10 +234,11 @@ class StarterBERTModel(nn.Module):
             num_layers: int = 3,
             nhead: int = 4,
             batch_first: bool = True,
+            pe_type: str = "sinusoid",
             use_mask: bool = True,
             use_key_padding_mask: bool = True,
             dropout: float = 0.1,
-            starter: str = "zeros",
+            starter: str = "ones",
     ):
         super().__init__()
 
@@ -232,6 +251,7 @@ class StarterBERTModel(nn.Module):
         self.output_dim = output_dim
         self.num_layers = num_layers
         self.nhead = nhead
+        self.pe_type = pe_type
         self.use_mask = use_mask
         self.use_key_padding_mask = use_key_padding_mask
         self.batch_first = batch_first
@@ -245,7 +265,7 @@ class StarterBERTModel(nn.Module):
         elif self.starter.lower() == 'ones':
             self.starter = torch.nn.Parameter(torch.ones(1, 1, self.hidden_dim), requires_grad=False)
         else:
-            raise AttributeError(f'Unknown train_starter: "{self.starter}". Expected one of [randn, zeros]')
+            raise AttributeError(f'Unknown train_starter: "{self.starter}". Expected one of [randn, zeros, ones]')
 
         self.event_embedding = EventEncoder(
             cat_feature_indexes=self.cat_feature_indexes,
@@ -254,6 +274,18 @@ class StarterBERTModel(nn.Module):
             hidden_dim=self.encoder_hidden_dim,
             output_dim=self.hidden_dim,
         )
+
+        if self.pe_type == "sinusoid":
+            self.pe = PositionalEncoding(
+                d_model=self.hidden_dim,
+                max_len=self.max_len
+            )
+
+        elif self.pe_type == "trainable":
+            self.pe = TrainablePositionalEncoding(
+                d_model=self.hidden_dim,
+                max_len=self.max_len
+            )
 
         self.seq2seq = nn.TransformerEncoder(
             encoder_layer=nn.TransformerEncoderLayer(
@@ -288,10 +320,12 @@ class StarterBERTModel(nn.Module):
         else:
             key_padding_mask = None
 
-        event_embeddings = torch.cat([self.starter.expand(B, 1, H), event_embeddings], dim=1)
+        x = torch.cat([self.starter.expand(B, 1, H), event_embeddings], dim=1)
+
+        x = self.pe(x)
 
         x = self.seq2seq(
-            event_embeddings,
+            x,
             mask=mask,
             src_key_padding_mask=key_padding_mask
         )
