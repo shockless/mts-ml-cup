@@ -11,9 +11,7 @@ import wandb
 from utils import save_model
 
 
-def train_epoch(
-    model, data_loader, loss_function, optimizer, scheduler, device, metric_func
-):
+def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device, metric_func):
     model.to(device)
     model.train()
 
@@ -89,23 +87,23 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
 
 
 def cross_validation(
-    project_name,
-    model,
-    dataset,
-    loss_function,
-    metric_func,
-    optimizer,
-    get_scheduler,
-    strat_array=None,
-    device=torch.device("cuda"),
-    random_state: int = 69,
-    shuffle: bool = True,
-    n_folds: int = 4,
-    epochs: int = 5,
-    lr: float = 1e-6,
-    start_fold: int = 0,
-    batch_size: int = 32,
-):
+        project_name,
+        model,
+        dataset,
+        loss_function,
+        metric_func,
+        optimizer,
+        get_scheduler,
+        strat_array=None,
+        device=torch.device("cuda"),
+        random_state: int = 69,
+        shuffle: bool = True,
+        n_folds: int = 4,
+        epochs: int = 5,
+        lr: float = 1e-6,
+        start_fold: int = 0,
+        batch_size: int = 32,
+    ):
     random.seed(random_state),
     np.random.seed(random_state)
     torch.manual_seed(random_state)
@@ -141,7 +139,7 @@ def cross_validation(
 
             fold_optimizer = optimizer(
                 fold_model.parameters(),
-                lr=lr,  # args.learning_rate - default is 5e-5, our notebook had 2e-5
+                lr=lr
             )
 
             train_subsampler = torch.utils.data.Subset(dataset, train_ids)
@@ -158,8 +156,8 @@ def cross_validation(
 
             scheduler = get_scheduler(
                 fold_optimizer,
-                num_warmup_steps=0,  # Default value in run_glue.py
-                num_training_steps=total_steps,
+                num_warmup_steps=0,
+                num_training_steps=total_steps
             )
 
             for epoch_i in range(epochs):
@@ -191,21 +189,21 @@ def cross_validation(
 
 
 def single_model_tr(
-    model,
-    dataset,
-    loss_function,
-    metric_func,
-    optimizer,
-    get_scheduler,
-    save_folder,
-    device=torch.device("cuda"),
-    random_state: int = 69,
-    shuffle: bool = True,
-    epochs: int = 15,
-    lr: float = 1e-6,
-    batch_size: int = 32,
-    start_epoch: int = 0,
-):
+        model,
+        dataset,
+        loss_function,
+        metric_func,
+        optimizer,
+        get_scheduler,
+        save_folder,
+        device=torch.device("cuda"),
+        random_state: int = 69,
+        shuffle: bool = True,
+        epochs: int = 15,
+        lr: float = 1e-6,
+        batch_size: int = 32,
+        start_epoch: int = 0,
+    ):
     random.seed(random_state),
     np.random.seed(random_state)
     torch.manual_seed(random_state)
@@ -216,7 +214,7 @@ def single_model_tr(
 
     optimizer = optimizer(
         model.parameters(),
-        lr=lr,  # args.learning_rate - default is 5e-5, our notebook had 2e-5
+        lr=lr
     )
 
     data_loader = torch.utils.data.DataLoader(
@@ -227,8 +225,8 @@ def single_model_tr(
 
     scheduler = get_scheduler(
         optimizer,
-        num_warmup_steps=0,  # Default value in run_glue.py
-        num_training_steps=total_steps,
+        num_warmup_steps=0,
+        num_training_steps=total_steps
     )
 
     os.mkdir(save_folder)
