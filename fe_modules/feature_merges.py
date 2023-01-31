@@ -10,4 +10,3 @@ def add_cat_features(df: pl.DataFrame, feature_a: str, feature_b: str, alias: st
         new_feature = new_feature.alias(f"{feature_a}_{feature_b}")
 
     return new_feature
-

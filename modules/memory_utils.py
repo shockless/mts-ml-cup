@@ -1,6 +1,6 @@
 import numpy as np
-import polars as pl
 import pandas as pd
+import polars as pl
 from IPython import get_ipython
 
 
@@ -51,8 +51,7 @@ def polars_reduce_mem_usage(df: pl.DataFrame) -> pl.DataFrame:
     """
     start_mem = df.estimated_size() / 1024 ** 2
     print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
-    print("Memory usage of dataframe is {:.2f} GB".format(start_mem  / 1024 ))
-
+    print("Memory usage of dataframe is {:.2f} GB".format(start_mem / 1024))
 
     for col in df.columns:
         col_type = df[col].dtype
@@ -76,9 +75,9 @@ def polars_reduce_mem_usage(df: pl.DataFrame) -> pl.DataFrame:
                 else:
                     df = df.with_column(pl.col(col).cast(pl.Float64, strict=True))
 
-    end_mem = df.estimated_size()  / 1024 ** 2
+    end_mem = df.estimated_size() / 1024 ** 2
     print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
-    print("Memory usage  after optimization is {:.2f} GB".format(end_mem  / 1024))
+    print("Memory usage  after optimization is {:.2f} GB".format(end_mem / 1024))
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
 
     return df

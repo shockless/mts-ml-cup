@@ -6,12 +6,12 @@ from torch import nn
 
 class EventEncoder(nn.Module):
     def __init__(
-        self,
-        cat_feature_indexes: list,
-        vocab_sizes: list,
-        cont_feature_indexes: list,
-        hidden_dim: int,
-        output_dim: int,
+            self,
+            cat_feature_indexes: list,
+            vocab_sizes: list,
+            cont_feature_indexes: list,
+            hidden_dim: int,
+            output_dim: int,
     ):
         super().__init__()
         self.cat_feature_indexes = cat_feature_indexes

@@ -4,9 +4,9 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+import wandb
 from sklearn.model_selection import StratifiedKFold, KFold
 from tqdm import tqdm
-import wandb
 
 from utils import save_model
 
@@ -103,7 +103,7 @@ def cross_validation(
         lr: float = 1e-6,
         start_fold: int = 0,
         batch_size: int = 32,
-    ):
+):
     random.seed(random_state),
     np.random.seed(random_state)
     torch.manual_seed(random_state)
@@ -203,7 +203,7 @@ def single_model_tr(
         lr: float = 1e-6,
         batch_size: int = 32,
         start_epoch: int = 0,
-    ):
+):
     random.seed(random_state),
     np.random.seed(random_state)
     torch.manual_seed(random_state)
