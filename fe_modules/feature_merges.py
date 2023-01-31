@@ -1,7 +1,7 @@
 import polars as pl
 
 
-def add_cat_features(df: pl.DataFrame, feature_a: str, feature_b: str, alias: str) -> pl.Series:
+def add_cat_features(df: pl.DataFrame, feature_a: str, feature_b: str, alias: str = None) -> pl.Series:
     new_feature = df[feature_a] + "_" + df[feature_b]
 
     if alias:

@@ -23,5 +23,3 @@ def get_agg_std(df: pl.DataFrame, target_col: str, agg_col: str = "user_id") -> 
 
 def get_agg_n_unique(df: pl.DataFrame, target_col: str, agg_col: str = "user_id") -> pl.DataFrame:
     return df.groupby(agg_col).agg(pl.col(target_col).n_unique().alias(f'{target_col}_n_unique'))
-
-
