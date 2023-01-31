@@ -10,7 +10,7 @@ def get_agg_mean(df: pl.DataFrame, target_col: str, agg_col: str = "user_id") ->
 
 
 def get_agg_mode(df: pl.DataFrame, target_col: str, agg_col: str = "user_id") -> pl.DataFrame:
-    return df.groupby(agg_col).agg(pl.col(target_col).mode().alias(f'{agg_col}_mean'))
+    return df.groupby(agg_col).agg(pl.col(target_col).mode().apply(lambda x: x[0]).alias(f'{agg_col}_mean'))
 
 
 def get_agg_median(df: pl.DataFrame, target_col: str, agg_col: str = "user_id") -> pl.DataFrame:
