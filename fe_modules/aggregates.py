@@ -61,3 +61,10 @@ def get_agg_n_unique(df: pl.DataFrame, target_col: str, agg_col: str = "user_id"
         return agg.sort(agg_col)
 
     return agg
+
+
+def price_of_all_cpes(df: pl.DataFrame,
+                      agg_col: str = "user_id",
+                      price_col: str = "price",
+                      alias: str = "total_price") -> pl.DataFrame:
+    return df.groupby(agg_col).agg(pl.col(price_col).unique().sum().alias(alias))

@@ -24,13 +24,13 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
     for batch in tqdm(data_loader):
         inputs, attention_mask, target = batch
         inputs, attention_mask, target = (
-            inputs.do(device),
-            attention_mask.do(device),
-            target.do(device),
+            inputs.to(device),
+            attention_mask.to(device),
+            target.to(device),
         )
 
         optimizer.zero_grad()
-        logits = model(inputs, attention_mask).logits
+        logits = model(inputs, attention_mask)
         outputs.append(logits)
         targets.append(target)
 
@@ -64,13 +64,13 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
     for batch in tqdm(data_loader):
         inputs, attention_mask, target = batch
         inputs, attention_mask, target = (
-            inputs.do(device),
-            attention_mask.do(device),
-            target.do(device),
+            inputs.to(device),
+            attention_mask.to(device),
+            target.to(device),
         )
 
         with torch.no_grad():
-            logits = model(inputs, attention_mask).logits
+            logits = model(inputs, attention_mask)
             outputs.append(logits)
             targets.append(target)
 

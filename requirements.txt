@@ -6,6 +6,8 @@ scikit-learn
 implicit
 matplotlib
 seaborn
+torch
+transformers
 
 jupyter
 IPython
