@@ -9,5 +9,8 @@ seaborn
 torch
 transformers
 
+beautifulsoup4
+requests
+
 jupyter
 IPython

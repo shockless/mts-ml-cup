@@ -1,25 +1,16 @@
 import polars as pl
 
 
-def get_agg_count(df: pl.DataFrame, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col("date").count().alias(f'{agg_col}_group_count'))
+def get_agg_count(df: pl.DataFrame,
+                  agg_col: str = "user_id",
+                  alias: str = None,
+                  sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_count'
 
-    if sort:
-        return agg.sort(agg_col)
-
-    return agg
-
-def get_agg_sum(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).sum().alias(f'{agg_col}_group_{target_col}_sum'))
-
-    if sort:
-        return agg.sort(agg_col)
-
-    return agg
-
-
-def get_agg_mean(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).mean().alias(f'{agg_col}_group_{target_col}_mean'))
+    agg = df.groupby(agg_col).agg(pl.col("date").count().alias(alias_name))
 
     if sort:
         return agg.sort(agg_col)
@@ -27,8 +18,17 @@ def get_agg_mean(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", so
     return agg
 
 
-def get_agg_mode(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).mode().apply(lambda x: x[0]).alias(f'{agg_col}_group_{target_col}_mean'))
+def get_agg_sum(df: pl.DataFrame,
+                target_col: str,
+                agg_col: str = "user_id",
+                alias: str = None,
+                sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_sum'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).sum().alias(alias_name))
 
     if sort:
         return agg.sort(agg_col)
@@ -36,8 +36,17 @@ def get_agg_mode(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", so
     return agg
 
 
-def get_agg_median(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).median().alias(f'{agg_col}_group_{target_col}_median'))
+def get_agg_mean(df: pl.DataFrame,
+                 target_col: str,
+                 agg_col: str = "user_id",
+                 alias: str = None,
+                 sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_mean'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).mean().alias(alias_name))
 
     if sort:
         return agg.sort(agg_col)
@@ -45,8 +54,17 @@ def get_agg_median(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", 
     return agg
 
 
-def get_agg_std(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).std().alias(f'{agg_col}_group_{target_col}_std'))
+def get_agg_mode(df: pl.DataFrame,
+                 target_col: str,
+                 agg_col: str = "user_id",
+                 alias: str = None,
+                 sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_mode'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).mode().apply(lambda x: x[0]).alias(alias_name))
 
     if sort:
         return agg.sort(agg_col)
@@ -54,8 +72,17 @@ def get_agg_std(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sor
     return agg
 
 
-def get_agg_n_unique(df: pl.DataFrame, target_col: str, agg_col: str = "user_id", sort: bool = True) -> pl.DataFrame:
-    agg = df.groupby(agg_col).agg(pl.col(target_col).n_unique().alias(f'{agg_col}_group_{target_col}_n_unique'))
+def get_agg_median(df: pl.DataFrame,
+                   target_col: str,
+                   agg_col: str = "user_id",
+                   alias: str = None,
+                   sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_median'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).median().alias(alias_name))
 
     if sort:
         return agg.sort(agg_col)
@@ -63,8 +90,55 @@ def get_agg_n_unique(df: pl.DataFrame, target_col: str, agg_col: str = "user_id"
     return agg
 
 
-def price_of_all_cpes(df: pl.DataFrame,
-                      agg_col: str = "user_id",
-                      price_col: str = "price",
-                      alias: str = "total_price") -> pl.DataFrame:
-    return df.groupby(agg_col).agg(pl.col(price_col).unique().sum().alias(alias))
+def get_agg_std(df: pl.DataFrame,
+                target_col: str,
+                agg_col: str = "user_id",
+                alias: str = None,
+                sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_std'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).std().alias(alias_name))
+
+    if sort:
+        return agg.sort(agg_col)
+
+    return agg
+
+
+def get_agg_n_unique(df: pl.DataFrame,
+                     target_col: str,
+                     agg_col: str = "user_id",
+                     alias: str = None,
+                     sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_n_unique'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).n_unique().alias(alias_name))
+
+    if sort:
+        return agg.sort(agg_col)
+
+    return agg
+
+
+def get_price_of_all_cpes(df: pl.DataFrame,
+                          agg_col: str = "user_id",
+                          price_col: str = "price",
+                          alias: str = "total_price",
+                          sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'total_price'
+
+    agg = df.groupby(agg_col).agg(pl.col(price_col).unique().sum().alias(alias_name))
+
+    if sort:
+        return agg.sort(agg_col)
+
+    return agg
