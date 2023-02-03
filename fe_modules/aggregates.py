@@ -12,10 +12,12 @@ def get_agg_count(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col("date").count().alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 
 def get_agg_sum(df: pl.DataFrame,
@@ -30,11 +32,12 @@ def get_agg_sum(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).sum().alias(alias_name))
 
+    df = df.join(agg, on=agg_col, how="left")
+
     if sort:
-        return agg.sort(agg_col)
+        return df.sort(agg_col)
 
-    return agg
-
+    return df
 
 def get_agg_mean(df: pl.DataFrame,
                  target_col: str,
@@ -48,11 +51,12 @@ def get_agg_mean(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).mean().alias(alias_name))
 
+    df = df.join(agg, on=agg_col, how="left")
+
     if sort:
-        return agg.sort(agg_col)
+        return df.sort(agg_col)
 
-    return agg
-
+    return df
 
 def get_agg_mode(df: pl.DataFrame,
                  target_col: str,
@@ -66,10 +70,12 @@ def get_agg_mode(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).mode().apply(lambda x: x[0]).alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 
 def get_agg_median(df: pl.DataFrame,
@@ -84,10 +90,12 @@ def get_agg_median(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).median().alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 
 def get_agg_std(df: pl.DataFrame,
@@ -102,10 +110,12 @@ def get_agg_std(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).std().alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 
 def get_agg_n_unique(df: pl.DataFrame,
@@ -120,10 +130,12 @@ def get_agg_n_unique(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).n_unique().alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 
 def get_price_of_all_cpes(df: pl.DataFrame,
@@ -138,7 +150,9 @@ def get_price_of_all_cpes(df: pl.DataFrame,
 
     agg = df.groupby(agg_col).agg(pl.col(price_col).unique().sum().alias(alias_name))
 
-    if sort:
-        return agg.sort(agg_col)
+    df = df.join(agg, on=agg_col, how="left")
 
-    return agg
+    if sort:
+        return df.sort(agg_col)
+
+    return df
