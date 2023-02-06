@@ -1,19 +1,19 @@
 import polars as pl
 
 
-def get_year(df: pl.DataFrame, date_col: str) -> pl.DataFrame:
+def get_year(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
     return df.with_column(pl.col(date_col).dt.year().alias("year"))
 
 
-def get_month(df: pl.DataFrame, date_col: str) -> pl.DataFrame:
+def get_month(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
     return df.with_column(pl.col(date_col).dt.month().alias("month"))
 
 
-def get_day(df: pl.DataFrame, date_col: str) -> pl.DataFrame:
+def get_day(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
     return df.with_column(pl.col(date_col).dt.day().alias("day"))
 
 
-def get_timestamp(df: pl.DataFrame, date_col: str) -> pl.DataFrame:
+def get_timestamp(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
     return df.with_column(pl.col(date_col).dt.timestamp().alias("timestamp"))
 
 
