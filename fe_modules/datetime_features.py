@@ -19,7 +19,7 @@ def get_day(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
     return df
 
 
-def get_timestamp(df: pd.DataFrame, date_col: str = "date", scaler: int = 10e9, alias: str = "timestamp") -> pd.DataFrame:
+def get_timestamp(df: pd.DataFrame, date_col: str = "date", alias: str = "timestamp", scaler: int = 10e9) -> pd.DataFrame:
     df[alias] = pd.DatetimeIndex(df[date_col]).astype(int) / scaler
     return df
 
@@ -41,14 +41,17 @@ def add_hour_to_date(df: pd.DataFrame, date_col: str = "date", hour_col: str = "
     return df
 
 
-def get_relative_time(df: pl.DataFrame,
+def get_relative_time(df: pd.DataFrame,
                       agg_col: str = "user_id",
-                      sort_col: str = "timestamp",
                       date_col: str = "datetime",
-                      scaler: int = 1e8) -> pl.DataFrame:
-    last_dates = df.sort(sort_col).groupby(agg_col).agg(pl.col(date_col).last().alias('last_date'))
-    df = df.join(last_dates, on=agg_col, how="left")
-    df = df.with_column(((pl.col("last_date") - pl.col(date_col)).dt.timestamp() / scaler).alias("relative_date"))
-    df = df.drop(["last_date"])
-
+                      alias: str = "relative_date",
+                      return_dtype: str = "timedelta",
+                      scaler: int = 100) -> pd.DataFrame:
+    last_dates = pd.DataFrame(df.groupby([agg_col])[date_col].max()).rename(columns={date_col: "last_date"})
+    df = df.merge(last_dates, on=agg_col, how="left")
+    if return_dtype == "timedelta":
+        df[alias] = df["last_date"] - df[date_col]
+    elif return_dtype == "timestamp":
+        df[alias] = (df["last_date"] - df[date_col]).dt.total_seconds() / scaler
+    df = df.drop(["last_date"], axis=1)
     return df
