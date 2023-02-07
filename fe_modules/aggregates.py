@@ -39,6 +39,7 @@ def get_agg_sum(df: pl.DataFrame,
 
     return df
 
+  
 def get_agg_mean(df: pl.DataFrame,
                  target_col: str,
                  agg_col: str = "user_id",
@@ -58,6 +59,7 @@ def get_agg_mean(df: pl.DataFrame,
 
     return df
 
+  
 def get_agg_mode(df: pl.DataFrame,
                  target_col: str,
                  agg_col: str = "user_id",
