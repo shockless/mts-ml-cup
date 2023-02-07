@@ -74,9 +74,46 @@ def get_agg_mode(df: pl.DataFrame,
 
     if sort:
         return df.sort(agg_col)
-
+      
     return df
 
+def get_agg_max(df: pl.DataFrame,
+                 target_col: str,
+                 agg_col: str = "user_id",
+                 alias: str = None,
+                 sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_max'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).max().alias(alias_name))
+
+    df = df.join(agg, on=agg_col, how="left")
+
+    if sort:
+        return df.sort(agg_col)
+
+    return df
+  
+def get_agg_min(df: pl.DataFrame,
+                 target_col: str,
+                 agg_col: str = "user_id",
+                 alias: str = None,
+                 sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_min'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).min().alias(alias_name))
+
+    df = df.join(agg, on=agg_col, how="left")
+
+    if sort:
+        return df.sort(agg_col)
+
+    return df
 
 def get_agg_median(df: pl.DataFrame,
                    target_col: str,
