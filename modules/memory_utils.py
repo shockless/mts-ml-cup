@@ -16,7 +16,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
     for col in tqdm(df.columns):
         col_type = df[col].dtype
 
-        if col_type != object:
+        if col_type not in [object, np.uint8, np.uint16, np.uint32, np.uint64]:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == "int":
