@@ -1,6 +1,8 @@
 import pandas as pd
 import polars as pl
 
+from pandas import Timedelta
+
 
 def get_year(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
     df["year"] = pd.DatetimeIndex(df[date_col]).year
@@ -22,23 +24,21 @@ def get_timestamp(df: pd.DataFrame, date_col: str = "date", scaler: int = 10e9, 
     return df
 
 
-def part_of_day_to_hour(df: pl.DataFrame, col: str = "part_of_day", alias: str = "hour") -> pl.DataFrame:
+def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", alias: str = "hour") -> pd.DataFrame:
     mapper = {
-        "morning": timedelta(hours=9),
-        "day": timedelta(hours=15),
-        "evening": timedelta(hours=21),
-        "night": timedelta(hours=3)
+        "morning": Timedelta(hours=9),
+        "day": Timedelta(hours=15),
+        "evening": Timedelta(hours=21),
+        "night": Timedelta(hours=3)
     }
-    
-    df = df.with_column([
-        pl.col(col).apply(lambda x: mapper[x]).alias(alias)
-    ])
-    
+    df[alias] = df[col].map(mapper)
     return df
 
 
-def add_hour_to_date(df: pl.DataFrame, date_col: str = "date", hour_col: str = "hour", alias: str = "datetime") -> pl.DataFrame: 
-    return df.with_column((pl.col(date_col) + pl.col(hour_col)).alias(alias))
+def add_hour_to_date(df: pd.DataFrame, date_col: str = "date", hour_col: str = "hour", alias: str = "datetime") -> pd.DataFrame:
+    df[date_col] = pd.to_datetime(df[date_col])
+    df[alias] = df[date_col] + df[hour_col]
+    return df
 
 
 def get_relative_time(df: pl.DataFrame,
