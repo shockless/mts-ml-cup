@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import polars as pl
+from tqdm import tqdm
 from IPython import get_ipython
 
 
@@ -12,7 +13,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
     start_mem = df.memory_usage().sum() / 1024 ** 2
     print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
 
-    for col in df.columns:
+    for col in tqdm(df.columns):
         col_type = df[col].dtype
 
         if col_type != object:
@@ -34,8 +35,6 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
                     df[col] = df[col].astype(np.float32)
                 else:
                     df[col] = df[col].astype(np.float64)
-        else:
-            df[col] = df[col].astype("category")
 
     end_mem = df.memory_usage().sum() / 1024 ** 2
     print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
@@ -93,6 +92,33 @@ def my_reset(varnames):
     del globals_
     get_ipython().magic("reset")
     globals().update(to_save)
+
+    
+def pandas_string_to_cat(df: pl.DataFrame, columns: list):
+    start_mem = df.memory_usage().sum() / 1024 ** 2
+    print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
+    print("Memory usage of dataframe is {:.2f} GB".format(start_mem / 1024))
+
+    for col in tqdm(columns):
+        df[col] = pd.Categorical(df[col]).codes.astype(np.uint64)
+
+        c_min = df[col].min()
+        c_max = df[col].max()
+        
+        if c_max < np.iinfo(np.uint8).max:
+            df[col] = df[col].astype(np.uint8)
+        elif c_max < np.iinfo(np.uint16).max:
+            df[col] = df[col].astype(np.uint16)
+        elif c_max < np.iinfo(np.uint32).max:
+            df[col] = df[col].astype(np.uint32)
+        elif c_max < np.iinfo(np.uint64).max:
+            df[col] = df[col].astype(np.uint64)
+
+    end_mem = df.memory_usage().sum() / 1024 ** 2
+    print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
+    print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
+
+    return df
 
 
 def polars_string_to_cat(df: pl.DataFrame, columns: list):

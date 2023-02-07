@@ -1,10 +1,13 @@
-import polars as pl
+import pandas as pd
+from tqdm import tqdm
+
+tqdm.pandas()
 
 
-def get_domain(df, url_col: str = "url_host", alias: str = "domain"):
+def get_domain(df: pd.DataFrame, url_col: str = "url_host", alias: str = "domain", verbose: bool =True) -> pd.DataFrame:
     splitter = lambda site: site.split(".")[-1]
-    unique_urls = pl.DataFrame(df[url_col].unique())
-    unique_urls = unique_urls.with_column(pl.col(url_col).apply(splitter).alias(alias))
+    unique_urls = pd.DataFrame(df[url_col].unique(), columns=[url_col])
+    unique_urls[alias] = unique_urls[url_col].apply(splitter)
 
-    return df.join(unique_urls, on="url_host",how="left")
+    return df.merge(unique_urls, on=url_col, how="left")
 

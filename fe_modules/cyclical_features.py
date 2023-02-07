@@ -1,10 +1,10 @@
 import numpy as np
-import polars as pl
+import pandas as pd
 
 
-def generate_cyclical_features(df: pl.DataFrame, col_name: str, period: int, start_num: int = 0) -> pl.DataFrame:
-    sin_generator = lambda x: np.sin(2 * np.pi * (x - start_num) / period)
-    cos_generator = lambda x: np.cos(2 * np.pi * (x - start_num) / period)
-    df = df.with_column(pl.col(col_name).apply(sin_generator).alias(f"sin_{col_name}"))
-    df = df.with_column(pl.col(col_name).apply(cos_generator).alias(f"cos_{col_name}"))
-    return df
+def generate_cyclical_features(df: pd.DataFrame, col_name: str, period: int, start_num: int = 0) -> pd.DataFrame:
+    kwargs = {
+        f'sin_{col_name}': lambda x: np.sin(2 * np.pi * (x[col_name] - start_num) / period),
+        f'cos_{col_name}': lambda x: np.cos(2 * np.pi * (x[col_name] - start_num) / period)
+    }
+    return df.assign(**kwargs)
