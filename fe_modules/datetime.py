@@ -1,18 +1,22 @@
 from datetime import timedelta
 
+import pandas as pd
 import polars as pl
 
 
-def get_year(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
-    return df.with_column(pl.col(date_col).dt.year().alias("year"))
+def get_year(df: pd.DataFrame, date_col: str = "year") -> pd.DataFrame:
+    df["year"] = pd.DatetimeIndex(df[date_col]).year
+    return df
 
 
-def get_month(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
-    return df.with_column(pl.col(date_col).dt.month().alias("month"))
+def get_month(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
+    df["month"] = pd.DatetimeIndex(df[date_col]).month
+    return df
 
 
-def get_day(df: pl.DataFrame, date_col: str = "date") -> pl.DataFrame:
-    return df.with_column(pl.col(date_col).dt.day().alias("day"))
+def get_day(df: pd.DataFrame, date_col: str = "day") -> pd.DataFrame:
+    df["dat"] = pd.DatetimeIndex(df[date_col]).day
+    return df
 
 
 def get_timestamp(df: pl.DataFrame, date_col: str = "date", scaler: int = 1e8) -> pl.DataFrame:
