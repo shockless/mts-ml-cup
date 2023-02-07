@@ -39,6 +39,7 @@ def get_agg_sum(df: pl.DataFrame,
 
     return df
 
+
 def get_agg_mean(df: pl.DataFrame,
                  target_col: str,
                  agg_col: str = "user_id",
@@ -58,6 +59,7 @@ def get_agg_mean(df: pl.DataFrame,
 
     return df
 
+
 def get_agg_mode(df: pl.DataFrame,
                  target_col: str,
                  agg_col: str = "user_id",
@@ -69,6 +71,46 @@ def get_agg_mode(df: pl.DataFrame,
         alias_name = f'{agg_col}_group_{target_col}_mode'
 
     agg = df.groupby(agg_col).agg(pl.col(target_col).mode().apply(lambda x: x[0]).alias(alias_name))
+
+    df = df.join(agg, on=agg_col, how="left")
+
+    if sort:
+        return df.sort(agg_col)
+
+    return df
+
+
+def get_agg_max(df: pl.DataFrame,
+                target_col: str,
+                agg_col: str = "user_id",
+                alias: str = None,
+                sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_max'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).max().alias(alias_name))
+
+    df = df.join(agg, on=agg_col, how="left")
+
+    if sort:
+        return df.sort(agg_col)
+
+    return df
+
+
+def get_agg_min(df: pl.DataFrame,
+                target_col: str,
+                agg_col: str = "user_id",
+                alias: str = None,
+                sort: bool = True) -> pl.DataFrame:
+    if alias:
+        alias_name = alias
+    else:
+        alias_name = f'{agg_col}_group_{target_col}_min'
+
+    agg = df.groupby(agg_col).agg(pl.col(target_col).min().alias(alias_name))
 
     df = df.join(agg, on=agg_col, how="left")
 
