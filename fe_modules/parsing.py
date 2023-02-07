@@ -11,6 +11,8 @@ from dask.diagnostics import ProgressBar
 
 def get_meta(soup):
     try:
+        if not soup.findAll("meta"):
+            return 'NULL', 'NULL', 'NULL', 'NULL', 'NULL'
         uri = soup.find("meta", property="og:url")
         if not uri:
             uri = 'NULL'
@@ -39,7 +41,6 @@ def get_meta(soup):
             keywords = 'NULL'
         else:
             keywords = keywords["content"]
-
         return title, uri, description, site_name, keywords
 
     except:
@@ -75,11 +76,13 @@ def parse_raw_texts(url):
     time.sleep(10)
     p.terminate()
     p.join()
+    if len(metad) < 5:
+        metad = (["NULL"] * (5 - len(metad)))
     metad.append(str(text.value))
-    columns = ['title','uri','description',
-                                    'site_name',
-                                    'keywords',
-                                    'text' ]
+    columns = ['title', 'uri', 'description',
+               'site_name',
+               'keywords',
+               'text']
     metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
     return metad
 
@@ -97,6 +100,5 @@ def parse(sites_path: str, out_path: str):
     res = ddf.apply(parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df))
     with ProgressBar():
         dft = res.compute()
-    print(dft.head())
     df = pd.concat([df, dft], axis=1)
     df.to_csv(out_path)
