@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-import wandb
+# import wandb
 from sklearn.model_selection import StratifiedKFold, KFold
 from tqdm import tqdm
 
@@ -122,18 +122,18 @@ def cross_validation(
             print(f"FOLD {fold}")
             print("--------------------------------")
 
-            run = wandb.init(
-                name=f"fold_{fold}",
-                project=f"{project_name}_fold_{fold}",
-                config={
-                    "random_state": random_state,
-                    "shuffle": shuffle,
-                    "epochs": epochs,
-                    "learning_rate": lr,
-                    "batch_size": batch_size,
-                    # "iters_to_accumulate": iters_to_accumulate
-                },
-            )
+#             run = wandb.init(
+#                 name=f"fold_{fold}",
+#                 project=f"{project_name}_fold_{fold}",
+#                 config={
+#                     "random_state": random_state,
+#                     "shuffle": shuffle,
+#                     "epochs": epochs,
+#                     "learning_rate": lr,
+#                     "batch_size": batch_size,
+#                     # "iters_to_accumulate": iters_to_accumulate
+#                 },
+#             )
 
             fold_model = deepcopy(model)
 
@@ -182,13 +182,13 @@ def cross_validation(
                 print(train_metrics)
                 print(eval_metrics)
 
-                run.log(train_metrics)
-                run.log(eval_metrics)
+#                 run.log(train_metrics)
+#                 run.log(eval_metrics)
 
-            run.finish()
+#             run.finish()
 
 
-def single_model_tr(
+def single_model_training(
         model,
         dataset,
         loss_function,
