@@ -23,6 +23,16 @@ def get_timestamp(df: pd.DataFrame, date_col: str = "date", alias: str = "timest
     return df
 
 
+def get_day_of_year(df: pd.DataFrame, date_col: str = "date", alias: str = "day_of_year") -> pd.DataFrame:
+    df[alias] = pd.DatetimeIndex(df[date_col]).day_of_year
+    return df
+
+
+def get_day_of_week(df: pd.DataFrame, date_col: str = "date", alias: str = "day_of_week") -> pd.DataFrame:
+    df[alias] = pd.DatetimeIndex(df[date_col]).day_of_week
+    return df
+
+
 def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", alias: str = "hour") -> pd.DataFrame:
     mapper = {
         "morning": Timedelta(hours=9),
