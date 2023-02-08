@@ -1,4 +1,8 @@
-def generate_time_lags(df: pd.DataFrame, agg_column: str = "user_id", time_column: str = "datetime", shift_column: str = "url_host", n_lags: int = 1):
+import pandas as pd
+
+
+def generate_time_lags(df: pd.DataFrame, agg_column: str = "user_id", time_column: str = "datetime",
+                       shift_column: str = "url_host", n_lags: int = 1) -> pd.DataFrame:
     df = df.sort_values(
         by=[agg_column, time_column], ascending=[True, True]
     )
