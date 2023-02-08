@@ -90,6 +90,22 @@ def get_agg_max(df: pd.DataFrame,
 
     return df
 
+def get_agg_min(df: pd.DataFrame,
+                agg_col: str = "user_id",
+                target_col: str = None,
+                col: str = None,
+                sort: bool = False) -> pd.DataFrame:
+    if col:
+        col_name = col
+    else:
+        col_name = f'{agg_col}_group_max'
+
+    agg = df.groupby([agg_col])[target_col].min().to_frame().rename(columns={target_col: col_name}).reset_index()
+    df = df.merge(agg, how="left", on=[agg_col])
+    if sort:
+        return df.sort_values(by=agg_col)
+
+    return df
 
 def get_agg_median(df: pd.DataFrame,
                    agg_col: str = "user_id",
