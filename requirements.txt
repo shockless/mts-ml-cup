@@ -7,6 +7,7 @@ catboost
 scikit-learn
 implicit
 
+wandb
 torch
 transformers
 
@@ -15,6 +16,7 @@ seaborn
 
 beautifulsoup4
 requests
+xlwt
 
 jupyter
 IPython

@@ -16,7 +16,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
     for col in tqdm(df.columns):
         col_type = df[col].dtype
 
-        if col_type != object:
+        if col_type not in [object, np.uint8, np.uint16, np.uint32, np.uint64]:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == "int":
@@ -100,18 +100,18 @@ def pandas_string_to_cat(df: pl.DataFrame, columns: list):
     print("Memory usage of dataframe is {:.2f} GB".format(start_mem / 1024))
 
     for col in tqdm(columns):
-        df[col] = pd.Categorical(df[col]).codes
+        df[col] = pd.Categorical(df[col]).codes.astype(np.uint64)
 
         c_min = df[col].min()
         c_max = df[col].max()
         
-        if c_min > np.iinfo(np.uint8).min and c_max < np.iinfo(np.uint8).max:
+        if c_max < np.iinfo(np.uint8).max:
             df[col] = df[col].astype(np.uint8)
-        elif c_min > np.iinfo(np.uint16).min and c_max < np.iinfo(np.uint16).max:
+        elif c_max < np.iinfo(np.uint16).max:
             df[col] = df[col].astype(np.uint16)
-        elif c_min > np.iinfo(np.uint32).min and c_max < np.iinfo(np.uint32).max:
+        elif c_max < np.iinfo(np.uint32).max:
             df[col] = df[col].astype(np.uint32)
-        elif c_min > np.iinfo(np.uint64).min and c_max < np.iinfo(np.uint64).max:
+        elif c_max < np.iinfo(np.uint64).max:
             df[col] = df[col].astype(np.uint64)
 
     end_mem = df.memory_usage().sum() / 1024 ** 2

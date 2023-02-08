@@ -1,7 +1,7 @@
+import torch
 import numpy as np
 import pandas as pd
 import polars as pl
-from tests import torch
 from tqdm import tqdm
 
 
@@ -23,7 +23,7 @@ class PandasPreprocessor:
 
         curr_ind = 0
         curr_val = agg_col[0]
-        for i in tqdm(range(curr_val.shape[0])):
+        for i in tqdm(range(agg_col.shape[0])):
             if agg_col[i] != curr_val:
                 sequences.append(dataset[curr_ind:i])
 
@@ -34,6 +34,12 @@ class PandasPreprocessor:
 
     def to_tensor(self, sequences: list) -> list:
         return [torch.tensor(sequence) for sequence in tqdm(sequences)]
+    
+    def add_batch(self, sequences: list) -> list:
+        return [sequence.unsqueeze(dim=0) for sequence in tqdm(sequences)]
+    
+    def concat(self, sequences: list) -> torch.tensor:
+        return torch.cat(sequences, dim=0)
 
     def right_pad_and_truncate(self, sequences: list) -> tuple:
         attention_masks = []
@@ -75,8 +81,8 @@ class PandasPreprocessor:
                     ], axis=0)
                 )
 
-            elif sequences[i].shape[0] > self.max_len:
-                sequences[i] = sequences[i][-(self.max_len - 1):]
+            elif sequences[i].shape[0] >= self.max_len:
+                sequences[i] = sequences[i][-self.max_len:]
                 attention_masks.append(np.ones((sequences[i].shape[0])))
 
         return sequences, attention_masks
@@ -87,10 +93,10 @@ class PandasPreprocessor:
             sequences, attention_masks = self.right_pad_and_truncate(sequences)
         elif self.padding_side.lower() == "left":
             sequences, attention_masks = self.left_pad_and_truncate(sequences)
-        sequences = self.to_tensor(sequences)
-        attention_masks = self.to_tensor(attention_masks)
+        sequences = self.concat(self.add_batch(self.to_tensor(sequences)))
+        attention_masks = self.concat(self.add_batch(self.to_tensor(attention_masks)))
 
-        return sequences, attention_masks
+        return sequences, attention_masks.bool()
 
 
 class PolarsPreprocessor(PandasPreprocessor):
