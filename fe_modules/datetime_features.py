@@ -33,6 +33,28 @@ def get_day_of_week(df: pd.DataFrame, date_col: str = "date", alias: str = "day_
     return df
 
 
+def get_holiday_name(df: pd.DataFrame, date_col: str = "date", alias: str = "holiday") -> pd.DataFrame:
+    mapper = dict()
+    for i in range(8):
+        mapper[f"1-{i}"] = "Новогодние каникулы"
+    mapper[f"1-7"] = "Рождество Христово"
+    mapper[f"2-23"] = "День защитника Отечества"
+    mapper[f"3-8"] = "Международный женский день"
+    mapper[f"5-1"] = "Праздник Весны и Труда"
+    mapper[f"5-9"] = "День Победы"
+    mapper[f"6-12"] = "День России"
+    mapper[f"11-4"] = "День народного единства"
+
+    def fill_func(x):
+        if f"{x.month}-{x.day}" in mapper:
+            return mapper[f"{x.month}-{x.day}"]
+        else:
+            return "Не праздник"
+
+    df[alias] = df[date_col].apply(fill_func)
+    return df
+
+
 def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", alias: str = "hour") -> pd.DataFrame:
     mapper = {
         "morning": Timedelta(hours=9),
