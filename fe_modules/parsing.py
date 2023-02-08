@@ -89,6 +89,7 @@ def parse_raw_texts(url):
 
 def parse(sites_path: str, out_path: str):
     df = pd.read_csv(sites_path)
+    #df=df.loc[200:204]
     df.url_host = 'http://' + df.url_host
     ddf = dd.from_pandas(df, npartitions=4)
     parse_df = {'title': 'object',
@@ -101,4 +102,4 @@ def parse(sites_path: str, out_path: str):
     with ProgressBar():
         dft = res.compute()
     df = pd.concat([df, dft], axis=1)
-    df.to_csv(out_path)
+    df.to_excel(out_path)
