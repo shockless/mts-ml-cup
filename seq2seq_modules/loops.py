@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+from transformers import get_constant_schedule
 # import wandb
 from sklearn.model_selection import StratifiedKFold, KFold
 from tqdm import tqdm
@@ -33,8 +34,8 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
         logits = model(inputs, attention_mask)
         outputs.append(logits)
         targets.append(target)
-
-        loss = loss_function(logits, target)
+        
+        loss = loss_function(logits.double(), target)
         total_train_loss += loss.item()
 
         loss.backward()
@@ -73,7 +74,7 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
             logits = model(inputs, attention_mask)
             outputs.append(logits)
             targets.append(target)
-
+        
         loss = loss_function(logits, target)
         total_train_loss += loss.item()
 
@@ -101,6 +102,7 @@ def cross_validation(
         n_folds: int = 4,
         epochs: int = 5,
         lr: float = 1e-6,
+        num_warmup_steps: int = 0,
         start_fold: int = 0,
         batch_size: int = 32,
 ):
@@ -110,7 +112,7 @@ def cross_validation(
     torch.cuda.manual_seed_all(random_state)
 
     loss_function.to(device)
-    if strat_array:
+    if type(strat_array) != type(None):
         kfold = StratifiedKFold(n_folds, shuffle=shuffle, random_state=random_state)
         split = kfold.split(dataset, strat_array)
     else:
@@ -153,19 +155,24 @@ def cross_validation(
             )
 
             total_steps = len(train_loader) * epochs
-
-            scheduler = get_scheduler(
-                fold_optimizer,
-                num_warmup_steps=0,
-                num_training_steps=total_steps
-            )
+            
+            if get_scheduler != get_constant_schedule:
+                scheduler = get_scheduler(
+                    fold_optimizer,
+                    num_warmup_steps=num_warmup_steps,
+                    num_training_steps=total_steps
+                )
+            else:
+                scheduler = get_scheduler(
+                    fold_optimizer,
+                )
 
             for epoch_i in range(epochs):
                 train_metrics = train_epoch(
                     model,
                     train_loader,
                     loss_function,
-                    optimizer,
+                    fold_optimizer,
                     scheduler,
                     device,
                     metric_func,

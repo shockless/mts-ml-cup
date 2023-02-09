@@ -20,12 +20,9 @@ class EventEncoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
-        self.cat_embeddings = nn.ModuleList(
-            [
-                nn.Embedding(self.vocab_sizes[i], self.hidden_dim)
-                for i in range(len(self.vocab_sizes))
-            ]
-        )
+        self.cat_embeddings = nn.ModuleList([
+                nn.Embedding(self.vocab_sizes[i], self.hidden_dim) for i in range(len(self.cat_feature_indexes))
+        ])
 
         self.batch_norm = nn.BatchNorm1d(len(self.cont_feature_indexes))
         self.cont_embeddings = nn.Linear(
@@ -41,19 +38,16 @@ class EventEncoder(nn.Module):
         :praram input_features:
         :returns:
         """
-
-        cat_embeddings = torch.cat(
-            [
+        cat_embeddings = torch.cat([
                 self.cat_embeddings[i](
-                    input_features[:, :, self.cat_feature_indexes[i]]
+                    input_features[:, :, self.cat_feature_indexes[i]].long()
                 )
-                for i in range(len(self.vocab_sizes))
-            ],
-            dim=2,
+                for i in range(len(self.cat_feature_indexes))
+            ], dim=2
         )
 
         cont_embeddings = self.cont_embeddings(
-            self.batch_norm(input_features[:, :, self.cont_feature_indexes])
+            self.batch_norm(input_features[:, :, self.cont_feature_indexes].permute(0, 2, 1).float()).permute(0, 2, 1)
         )
 
         whole_embeddings = torch.cat([cat_embeddings, cont_embeddings], dim=2)

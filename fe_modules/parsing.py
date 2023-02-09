@@ -78,7 +78,7 @@ def parse_raw_texts(url):
     p.join()
     if len(metad) < 5:
         metad = (["NULL"] * (5 - len(metad)))
-    metad.append(str(text.value))
+    metad.append(str(text.value)[:32760])
     columns = ['title', 'uri', 'description',
                'site_name',
                'keywords',

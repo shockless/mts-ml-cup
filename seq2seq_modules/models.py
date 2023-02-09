@@ -55,10 +55,10 @@ class LSTMModel(nn.Module):
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
     def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
-        event_embeddings = self.event_embedding(input_features[attention_mask])
-        event_embeddings[~attention_mask] *= 0
+        event_embeddings = self.event_embedding(input_features)
+        event_embeddings = event_embeddings * attention_mask.unsqueeze(2)
         x, (h, c) = self.seq2seq(event_embeddings)
-        out = self.out(h[:, -1])
+        out = self.out(h[-1])
 
         return out
 
@@ -113,8 +113,8 @@ class GRUModel(nn.Module):
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
     def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
-        event_embeddings = self.event_embedding(input_features[attention_mask])
-        event_embeddings[~attention_mask] *= 0
+        event_embeddings = self.event_embedding(input_features)
+        event_embeddings = event_embeddings * attention_mask
         x, h = self.seq2seq(event_embeddings)
         out = self.out(h[:, -1])
 
@@ -195,8 +195,8 @@ class MeanBERTModel(nn.Module):
     def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
         B, T, H = input_features.size()
 
-        event_embeddings = self.event_embedding(input_features[attention_mask])
-        event_embeddings[~attention_mask] *= 0
+        event_embeddings = self.event_embedding(input_features)
+        event_embeddings = event_embeddings * attention_mask
 
         if self.use_mask:
             mask = generate_square_subsequent_mask(T).to(input_features.device)
@@ -304,8 +304,8 @@ class StarterBERTModel(nn.Module):
     def forward(self, input_features: torch.Tensor, attention_mask: torch.LongTensor) -> torch.Tensor:
         B, T, H = input_features.size()
 
-        event_embeddings = self.event_embedding(input_features[attention_mask])
-        event_embeddings[~attention_mask] *= 0
+        event_embeddings = self.event_embedding(input_features)
+        event_embeddings = event_embeddings * attention_mask
 
         if self.use_mask:
             mask = generate_square_subsequent_mask(T + 1).to(input_features.device)

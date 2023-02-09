@@ -6,9 +6,17 @@ from tqdm import tqdm
 
 
 class PandasPreprocessor:
-    def __init__(self, agg_column: str, time_column: str, max_len: int, padding_side: str = "left"):
+    def __init__(self, 
+                 agg_column: str, 
+                 time_column: str,
+                 target_column: str,
+                 features: list,
+                 max_len: int, 
+                 padding_side: str = "left"):
         self.agg_column = agg_column
         self.time_column = time_column
+        self.target_column = target_column
+        self.features = features
         self.max_len = max_len
         self.padding_side = padding_side
 
@@ -18,19 +26,23 @@ class PandasPreprocessor:
         )
 
         sequences = []
+        targets = []
+        
         agg_col = dataset[self.agg_column].to_numpy()
-        dataset = dataset.to_numpy()
-
+        target = dataset[self.target_column].to_numpy()
+        dataset = dataset[self.features].to_numpy()
+        
         curr_ind = 0
         curr_val = agg_col[0]
         for i in tqdm(range(agg_col.shape[0])):
             if agg_col[i] != curr_val:
                 sequences.append(dataset[curr_ind:i])
+                targets.append(target[curr_ind:i][0])
 
                 curr_ind = i
                 curr_val = agg_col[i]
 
-        return sequences
+        return sequences, targets
 
     def to_tensor(self, sequences: list) -> list:
         return [torch.tensor(sequence) for sequence in tqdm(sequences)]
@@ -88,7 +100,8 @@ class PandasPreprocessor:
         return sequences, attention_masks
 
     def transform(self, dataset: pd.DataFrame) -> tuple:
-        sequences = self.get_sequences(dataset)
+        sequences, target = self.get_sequences(dataset)
+        target = torch.tensor(target).long()
         if self.padding_side.lower() == "right":
             sequences, attention_masks = self.right_pad_and_truncate(sequences)
         elif self.padding_side.lower() == "left":
@@ -96,7 +109,7 @@ class PandasPreprocessor:
         sequences = self.concat(self.add_batch(self.to_tensor(sequences)))
         attention_masks = self.concat(self.add_batch(self.to_tensor(attention_masks)))
 
-        return sequences, attention_masks.bool()
+        return sequences, attention_masks.bool(), target
 
 
 class PolarsPreprocessor(PandasPreprocessor):
