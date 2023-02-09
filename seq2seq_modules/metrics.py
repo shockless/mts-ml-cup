@@ -1,12 +1,11 @@
 # from torchmetrics import AUROC, F1Score
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 from utils import age_bucket
 
 
-# def GENDER_METRIC(logits, targets):
-#     score = AUROC(task="binary")
-#     return {"Gender GINI": 2 * score(logits, targets) - 1}
+def GENDER_METRIC(logits, targets):
+    return {"Gender GINI": 2 * roc_auc_score(logits.numpy(), targets.numpy()[:, 1]) - 1}
 
 
 # def AGE_METRIC_REGRESSION(logits, targets):

@@ -75,7 +75,7 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
             outputs.append(logits.cpu())
             targets.append(target.cpu())
         
-        loss = loss_function(logits, target)
+        loss = loss_function(logits.double(), target)
         total_train_loss += loss.item()
 
     outputs = torch.cat(outputs, dim=0)
@@ -169,7 +169,7 @@ def cross_validation(
 
             for epoch_i in range(epochs):
                 train_metrics = train_epoch(
-                    model,
+                    fold_model,
                     train_loader,
                     loss_function,
                     fold_optimizer,
@@ -178,7 +178,7 @@ def cross_validation(
                     metric_func,
                 )
                 eval_metrics = eval_epoch(
-                    model,
+                    fold_model,
                     eval_loader,
                     loss_function,
                     device,
