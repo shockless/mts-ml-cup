@@ -1,4 +1,5 @@
 from ctypes import c_char_p
+import random
 import requests
 from bs4 import BeautifulSoup
 import bs4
@@ -8,11 +9,28 @@ import pandas as pd
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
 
+import warnings
+warnings.filterwarnings("ignore")
+def get_session(proxy):
+    session = requests.Session()
+    session.proxies = {"http": proxy, "https": proxy}
+    return session
+
+
+def get_site_name(row):
+    site = str(row).split('.')
+    site[0] = site[0][7:]
+    if (len(site) >= 2):
+        site = site[-2] + '.' + site[-1]
+    else:
+        site = row
+    return site
+
 
 def get_meta(soup):
     try:
         if not soup.findAll("meta"):
-            return 'NULL', 'NULL', 'NULL', 'NULL', 'NULL'
+            return soup.title.text, 'NULL', 'NULL', 'NULL', 'NULL'
         uri = soup.find("meta", property="og:url")
         if not uri:
             uri = 'NULL'
@@ -43,63 +61,115 @@ def get_meta(soup):
             keywords = keywords["content"]
         return title, uri, description, site_name, keywords
 
-    except:
+    except Exception as e:
         return 'NULL', 'NULL', 'NULL', 'NULL', 'NULL'
 
 
-def parse_bs(url: str, text: str, metad):
+def get_content(res):
     try:
-        res = requests.get(url)
+        s = res.content.decode("utf-8")
+        soup = BeautifulSoup(s, "html.parser")
+        metad = list(get_meta(soup))
+        for data in soup(['style', 'script', 'img']):
+            data.decompose()
 
+        text = ''.join(soup.stripped_strings)
+    except UnicodeDecodeError as e:
+        text = "NULL"
+        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+    return [text, metad]
+
+
+def get_free_proxies():
+    url = "http://free-proxy-list.net/"
+    soup = BeautifulSoup(requests.get(url).content, "html.parser")
+    proxies = []
+    for row in soup.find_all("table")[0].find_all("tr")[1:]:
+        tds = row.find_all("td")
         try:
-            s = res.content.decode("utf-8")
-            soup = BeautifulSoup(s, "html.parser")
-            metad.extend(list(get_meta(soup)))
-            for data in soup(['style', 'script', 'img']):
-                data.decompose()
-            text.value = ' '.join(soup.stripped_strings)
-        except UnicodeDecodeError:
-            text.value = "NULL"
-            metad.extend(['NULL', 'NULL', 'NULL', 'NULL', 'NULL'])
-    except:
-        text.value = "NULL"
-        metad.extend(list(('NULL', 'NULL', 'NULL', 'NULL', 'NULL')))
+            if tds[4].text.strip() == 'elite proxy' and tds[6].text.strip() == 'yes' and tds[5].text.strip() == 'yes':
+                ip = tds[0].text.strip()
+                port = tds[1].text.strip()
+                host = f"{ip}:{port}"
+                proxies.append(host)
+        except IndexError:
+            continue
+    return proxies
 
 
-def parse_raw_texts(url):
-    url = url['url_host']
-    manager = multiprocessing.Manager()
-    text = manager.Value(c_char_p, "NULL")
-    metad = manager.list()
-    p = multiprocessing.Process(target=parse_bs, name="Foo", args=(url, text, metad))
-    p.start()
-    time.sleep(10)
-    p.terminate()
-    p.join()
-    if len(metad) < 5:
-        metad = (["NULL"] * (5 - len(metad)))
-    metad.append(str(text.value)[:32760])
-    columns = ['title', 'uri', 'description',
-               'site_name',
-               'keywords',
-               'text']
-    metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
-    return metad
+class parser:
 
+    def __init__(self):
+        self.proxy = random.choice(get_free_proxies())
 
-def parse(sites_path: str, out_path: str):
-    df = pd.read_csv(sites_path)
-    #df=df.loc[200:204]
-    df.url_host = 'http://' + df.url_host
-    ddf = dd.from_pandas(df, npartitions=4)
-    parse_df = {'title': 'object',
-                'uri': 'object',
-                'description': 'object',
-                'site_name': 'object',
-                'keywords': 'object',
-                'text': 'object'}
-    res = ddf.apply(parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df))
-    with ProgressBar():
-        dft = res.compute()
-    df = pd.concat([df, dft], axis=1)
-    df.to_excel(out_path)
+    def parse_bs(self, url: str, text, metad, timeout):
+
+        while True:
+            try:
+                s = get_session(self.proxy)
+                res = s.get(url, timeout=timeout)
+                try:
+                    res = get_content(res)
+
+                    text = res[0]
+                    metad = res[1]
+                    if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
+                        url = get_site_name(url)
+                        res = s.get(url, timeout=timeout)
+                        res = get_content(res)
+                        text = res[0]
+                        metad = res[1]
+
+                    elif 'Yandex SmartCaptcha' in text:
+                        text = "NULL"
+                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+
+                    if text == '':
+                        text = "NULL"
+
+                except Exception as e:
+                    pass
+                break
+
+            except Exception as e:
+                self.proxy = random.choice(get_free_proxies())
+                if e == TypeError:
+                    text = "NULL"
+                    metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                    break
+
+        s.close()
+        return text, metad
+
+    def parse_raw_texts(self, url, timeout):
+        url = url['url_host']
+        text = "NULL"
+        metad = []
+        text, metad = self.parse_bs(url, text, metad, timeout)
+        if len(metad) < 5:
+            metad = (["NULL"] * (5 - len(metad)))
+        metad.append(str(text)[:32760])
+        columns = ['title', 'uri', 'description',
+                   'site_name',
+                   'keywords',
+                   'text']
+        # print(metad)
+        metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
+        return metad
+
+    def parse(self, sites_path: str, out_path: str, timeout: int):
+        df = pd.read_csv(sites_path)
+        #   df = df.loc[200:204]
+        df.url_host = df.url_host
+        ddf = dd.from_pandas(df, npartitions=4)
+        parse_df = {'title': 'object',
+                    'uri': 'object',
+                    'description': 'object',
+                    'site_name': 'object',
+                    'keywords': 'object',
+                    'text': 'object'}
+        res = ddf.apply(self.parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df), args=(timeout,))
+        with ProgressBar():
+            dft = res.compute()
+        #df = pd.concat([df, dft], axis=1)
+        dft.to_excel(out_path)

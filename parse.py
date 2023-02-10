@@ -1,6 +1,7 @@
-from fe_modules.parsing import parse
+from fe_modules.parsing import parser
 import os
 
 if __name__ == "__main__":
-    parse(os.path.join(os.path.abspath(os.getcwd()), 'top_10k_urls.csv'),
-          os.path.join(os.path.abspath(os.getcwd()), 'sites_out.xls'))
+    parser().parse(os.path.join(os.path.abspath(os.getcwd()), 'sites_out_vpn_only.csv'),
+          os.path.join(os.path.abspath(os.getcwd()), 'sites_out_2.xls'),
+          5)
