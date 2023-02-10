@@ -31,7 +31,7 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
 
         optimizer.zero_grad()
         logits = model(inputs, attention_mask)
-        outputs.append(logits.cpu())
+        outputs.append(logits.detach().cpu())
         targets.append(target.cpu())
         
         loss = loss_function(logits.double(), target)
@@ -70,7 +70,7 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
 
         with torch.no_grad():
             logits = model(inputs, attention_mask)
-            outputs.append(logits.cpu())
+            outputs.append(logits.detach().cpu())
             targets.append(target.cpu())
         
         loss = loss_function(logits.double(), target)
