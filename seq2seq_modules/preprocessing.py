@@ -70,8 +70,8 @@ class PandasPreprocessor:
                     ], axis=0)
                 )
 
-            elif sequences[i].shape[0] > self.max_len:
-                sequences[i] = sequences[i][-(self.max_len - 1):]
+            elif sequences[i].shape[0] >= self.max_len:
+                sequences[i] = sequences[i][-self.max_len:]
                 attention_masks.append(np.ones((sequences[i].shape[0])))
 
         return sequences, attention_masks

@@ -85,7 +85,7 @@ class TrainablePositionalEncoding(nn.Module):
         self.dropout = dropout
         self.max_len = max_len
 
-        self.embedding = nn.Embedding(num_embeddings=self.max_len, embedding_dim=self.d_model)
+        self.embedding = nn.Parameter(torch.randn(1, self.max_len, self.d_model), requires_grad=True)
         self.dropout = nn.Dropout(p=self.dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -95,7 +95,24 @@ class TrainablePositionalEncoding(nn.Module):
         """
         B, T, H = x.size()
 
-        position = torch.arange(self.max_len).expand(B, -1)
-        x = self.embedding(position)
+        x = x + self.embedding
 
         return self.dropout(x)
+    
+    
+class AttentionPooling(nn.Module):
+    def __init__(self, d_model):
+        super().__init__()
+        self.attention = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.LayerNorm(d_model),
+            nn.GELU(),
+            nn.Linear(d_model, 1),
+        )
+        
+    def forward(self, last_hidden_state, attention_mask):
+        w = self.attention(last_hidden_state).float()
+        w[attention_mask == 0] = float('-inf')
+        w = torch.softmax(w, 1)
+        attention_embeddings = torch.sum(w * last_hidden_state, dim=1)
+        return attention_embeddings

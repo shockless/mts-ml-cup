@@ -21,3 +21,6 @@ xlwt
 
 jupyter
 IPython
+
+category-encoders
+joblib

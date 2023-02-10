@@ -13,7 +13,6 @@ from utils import save_model
 
 
 def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device, metric_func):
-    model.to(device)
     model.train()
 
     dl_size = len(data_loader)
@@ -53,7 +52,6 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
 
 
 def eval_epoch(model, data_loader, loss_function, device, metric_func):
-    model.to(device)
     model.eval()
 
     dl_size = len(data_loader)
@@ -99,9 +97,11 @@ def cross_validation(
         device=torch.device("cuda"),
         random_state: int = 69,
         shuffle: bool = True,
+        dataloader_shuffle=False, 
         n_folds: int = 4,
         epochs: int = 5,
         lr: float = 1e-6,
+        weight_decay: float = 1e-2,
         num_warmup_steps: int = 0,
         start_fold: int = 0,
         batch_size: int = 32,
@@ -138,20 +138,22 @@ def cross_validation(
 #             )
 
             fold_model = deepcopy(model)
+            fold_model.to(device)
 
             fold_optimizer = optimizer(
                 fold_model.parameters(),
-                lr=lr
+                lr=lr,
+                weight_decay=weight_decay,
             )
 
             train_subsampler = torch.utils.data.Subset(dataset, train_ids)
             train_loader = torch.utils.data.DataLoader(
-                train_subsampler, batch_size=batch_size, shuffle=shuffle
+                train_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
             )
 
             eval_subsampler = torch.utils.data.Subset(dataset, eval_ids)
             eval_loader = torch.utils.data.DataLoader(
-                eval_subsampler, batch_size=batch_size, shuffle=shuffle
+                eval_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
             )
 
             total_steps = len(train_loader) * epochs
