@@ -157,7 +157,7 @@ class parser:
             except Exception as e:
                 if isinstance(e, requests.exceptions.ProxyError) or isinstance(e, requests.exceptions.SSLError) or isinstance(e, requests.exceptions.ConnectionError):
                     self.proxy = random.choice(get_free_proxies())
-                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout):
+                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout) :
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                     break
