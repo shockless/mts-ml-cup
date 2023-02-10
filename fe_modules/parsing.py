@@ -1,6 +1,8 @@
+import ssl
 from ctypes import c_char_p
 import random
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 import bs4
 import multiprocessing
@@ -10,7 +12,10 @@ import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
 
 import warnings
+
 warnings.filterwarnings("ignore")
+
+
 def get_session(proxy):
     session = requests.Session()
     session.proxies = {"http": proxy, "https": proxy}
@@ -20,8 +25,8 @@ def get_session(proxy):
 def get_site_name(row):
     site = str(row).split('.')
     site[0] = site[0][7:]
-    if (len(site) >= 2):
-        site = site[-2] + '.' + site[-1]
+    if (len(site) > 2):
+        site = 'http://' + site[-2] + '.' + site[-1]
     else:
         site = row
     return site
@@ -97,6 +102,19 @@ def get_free_proxies():
     return proxies
 
 
+def get_headers():
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+        'Mozilla/5.0 (Linux; Android 11; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Mobile Safari/537.36'
+    ]
+    user_agent = random.choice(user_agents)
+    headers = {'User-Agent': user_agent}
+    return headers
+
+
 class parser:
 
     def __init__(self):
@@ -107,7 +125,8 @@ class parser:
         while True:
             try:
                 s = get_session(self.proxy)
-                res = s.get(url, timeout=timeout)
+                headers = get_headers()
+                res = s.get(url, timeout=timeout, headers=headers)
                 try:
                     res = get_content(res)
 
@@ -115,7 +134,8 @@ class parser:
                     metad = res[1]
                     if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
                         url = get_site_name(url)
-                        res = s.get(url, timeout=timeout)
+                        headers = get_headers()
+                        res = s.get(url, timeout=timeout, headers=headers)
                         res = get_content(res)
                         text = res[0]
                         metad = res[1]
@@ -132,37 +152,47 @@ class parser:
                 break
 
             except Exception as e:
-                self.proxy = random.choice(get_free_proxies())
-                if e == TypeError:
+                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e, requests.exceptions.SSLError):
+                    self.proxy = random.choice(get_free_proxies())
+                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout) or isinstance(e, requests.exceptions.ChunkedEncodingError):
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                     break
+                else:
+                    raise e
 
         s.close()
-        return text, metad
+        s.delete(url)
+        return text, metad, url
 
     def parse_raw_texts(self, url, timeout):
         url = url['url_host']
         text = "NULL"
         metad = []
-        text, metad = self.parse_bs(url, text, metad, timeout)
+        text, metad, url = self.parse_bs(url, text, metad, timeout)
         if len(metad) < 5:
             metad = (["NULL"] * (5 - len(metad)))
         metad.append(str(text)[:32760])
-        columns = ['title', 'uri', 'description',
+        columns = ['url', 'title', 'uri', 'description',
                    'site_name',
                    'keywords',
                    'text']
         # print(metad)
+        metad.insert(0, url)
         metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
         return metad
 
-    def parse(self, sites_path: str, out_path: str, timeout: int):
+    def parse(self, sites_path: str, out_path: str, timeout: int, start: int, end: int):
         df = pd.read_csv(sites_path)
-        #   df = df.loc[200:204]
+        if not end:
+            end = df.shape[0] - 1
+        if not start:
+            start = 0
+        df = df.iloc[start:end]
         df.url_host = df.url_host
         ddf = dd.from_pandas(df, npartitions=4)
-        parse_df = {'title': 'object',
+        parse_df = {'url': 'object',
+                    'title': 'object',
                     'uri': 'object',
                     'description': 'object',
                     'site_name': 'object',
@@ -171,5 +201,5 @@ class parser:
         res = ddf.apply(self.parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df), args=(timeout,))
         with ProgressBar():
             dft = res.compute()
-        #df = pd.concat([df, dft], axis=1)
+        # df = pd.concat([df, dft], axis=1)
         dft.to_excel(out_path)
