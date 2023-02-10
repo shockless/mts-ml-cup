@@ -14,6 +14,7 @@ torchmetrics
 
 matplotlib
 seaborn
+plotly
 
 beautifulsoup4
 requests
