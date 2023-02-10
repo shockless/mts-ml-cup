@@ -82,6 +82,9 @@ def get_content(res):
     except UnicodeDecodeError as e:
         text = "NULL"
         metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+    except requests.exceptions.ContentDecodingError as e:
+        text = "NULL"
+        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
     return [text, metad]
 
 
@@ -152,9 +155,9 @@ class parser:
                 break
 
             except Exception as e:
-                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e, requests.exceptions.SSLError):
+                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e, requests.exceptions.SSLError) or isinstance(e, requests.exceptions.ConnectionError):
                     self.proxy = random.choice(get_free_proxies())
-                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout) or isinstance(e, requests.exceptions.ChunkedEncodingError):
+                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout):
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                     break
@@ -162,7 +165,6 @@ class parser:
                     raise e
 
         s.close()
-        s.delete(url)
         return text, metad, url
 
     def parse_raw_texts(self, url, timeout):
