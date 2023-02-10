@@ -155,9 +155,11 @@ class parser:
                 break
 
             except Exception as e:
-                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e, requests.exceptions.SSLError) or isinstance(e, requests.exceptions.ConnectionError):
+                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e,
+                                                                               requests.exceptions.SSLError) or isinstance(
+                        e, requests.exceptions.ConnectionError):
                     self.proxy = random.choice(get_free_proxies())
-                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout) :
+                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout):
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                     break
@@ -184,11 +186,11 @@ class parser:
         metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
         return metad
 
-    def parse(self, sites_path: str, out_path: str, timeout: int, start: int, end: int):
+    def parse(self, sites_path: str, out_path: str, timeout: int, start=-1, end=-1):
         df = pd.read_csv(sites_path)
-        if not end:
+        if end == -1:
             end = df.shape[0] - 1
-        if not start:
+        if start == -1:
             start = 0
         df = df.iloc[start:end]
         df.url_host = df.url_host
