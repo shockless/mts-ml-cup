@@ -10,7 +10,7 @@ def get_embeddings(texts: list, model_name: str = "setu4993/LaBSE", batch_size: 
     model.to(device)
     model.eval()
 
-    english_inputs = tokenizer(texts, return_tensors="pt", padding=True)
+    english_inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
     input_ids = english_inputs["input_ids"]
     attention_mask = english_inputs["attention_mask"]
 
