@@ -240,6 +240,7 @@ class StarterBERTModel(nn.Module):
             use_key_padding_mask: bool = False,
             dropout: float = 0.1,
             starter: str = "rand",
+            shared: bool = False
     ):
         super().__init__()
 
@@ -259,6 +260,7 @@ class StarterBERTModel(nn.Module):
         self.batch_first = batch_first
         self.dropout = dropout
         self.starter = starter
+        self.shared = shared
 
         if self.starter.lower() == 'randn':
             self.starter = torch.nn.Parameter(torch.randn(1, 1, self.hidden_dim), requires_grad=True)
@@ -288,18 +290,31 @@ class StarterBERTModel(nn.Module):
                 d_model=self.hidden_dim,
                 max_len=self.max_len + 1
             )
-
-        self.seq2seq = nn.TransformerEncoder(
-            encoder_layer=nn.TransformerEncoderLayer(
-                d_model=self.hidden_dim,
-                nhead=self.nhead,
-                dim_feedforward=self.dim_feedforward,
-                batch_first=self.batch_first,
-                dropout=self.dropout,
-                norm_first=True,
-            ),
-            num_layers=self.num_layers
-        )
+            
+        if self.shared:
+            self.seq2seq = nn.TransformerEncoder(
+                encoder_layer=nn.TransformerEncoderLayer(
+                    d_model=self.hidden_dim,
+                    nhead=self.nhead,
+                    dim_feedforward=self.dim_feedforward,
+                    batch_first=self.batch_first,
+                    dropout=self.dropout,
+                    norm_first=True,
+                ),
+                num_layers=1
+            )
+        else:
+            self.seq2seq = nn.TransformerEncoder(
+                encoder_layer=nn.TransformerEncoderLayer(
+                    d_model=self.hidden_dim,
+                    nhead=self.nhead,
+                    dim_feedforward=self.dim_feedforward,
+                    batch_first=self.batch_first,
+                    dropout=self.dropout,
+                    norm_first=True,
+                ),
+                num_layers=self.num_layers
+            )
 
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
@@ -325,12 +340,20 @@ class StarterBERTModel(nn.Module):
         x = torch.cat([self.starter.expand(B, 1, self.hidden_dim), event_embeddings], dim=1)
 
         x = self.pe(x)
-
-        x = self.seq2seq(
-            x,
-            mask=mask,
-            src_key_padding_mask=key_padding_mask
-        )
+        
+        if self.shared:
+            x = self.seq2seq(
+                x,
+                mask=mask,
+                src_key_padding_mask=key_padding_mask
+            )
+        else:
+            for i in range(self.num_layers):
+                x = self.seq2seq(
+                    x,
+                    mask=mask,
+                    src_key_padding_mask=key_padding_mask
+                )
 
         out = self.out(x[:, 0])
 

@@ -102,17 +102,18 @@ class TrainablePositionalEncoding(nn.Module):
     
 class AttentionPooling(nn.Module):
     def __init__(self, d_model):
-        super().__init__()
+        super().__init__()        
         self.attention = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.LayerNorm(d_model),
             nn.GELU(),
             nn.Linear(d_model, 1),
+            nn.ReLU(),
         )
         
     def forward(self, last_hidden_state, attention_mask):
         w = self.attention(last_hidden_state).float()
-        w[attention_mask == 0] = float('-inf')
+        w = w * attention_mask.unsqueeze(2)
         w = torch.softmax(w, 1)
         attention_embeddings = torch.sum(w * last_hidden_state, dim=1)
         return attention_embeddings
