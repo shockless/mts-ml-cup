@@ -1,5 +1,6 @@
 from aggregates import get_agg_mean, get_agg_min, get_agg_max
 import pandas as pd
+from modules.memory_utils import pandas_reduce_mem_usage
 
 
 def mean_first_visit(df: pd.DataFrame) -> pd.DataFrame:
@@ -14,3 +15,11 @@ def mean_last_visit(df: pd.DataFrame) -> pd.DataFrame:
     mean_lv = get_agg_mean(last_visit, agg_col=['user_id', 'date'], col='mean_fv', target_col='last_visit')
     del mean_lv['last_visit']
     return mean_lv
+
+
+def map_cities(df, cities_path='cities_finally.csv'):
+    cities = pandas_reduce_mem_usage(
+        pd.read_csv(cities_path))
+    df = df.merge(cities, on="city_name", how="left")
+    return df
+
