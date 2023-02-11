@@ -1,17 +1,16 @@
-import torch
 import numpy as np
 import pandas as pd
-import polars as pl
+import torch
 from tqdm import tqdm
 
 
-class PandasPreprocessor:
-    def __init__(self, 
-                 agg_column: str, 
+class TargetPandasPreprocessor:
+    def __init__(self,
+                 agg_column: str,
                  time_column: str,
                  target_column: str,
                  features: list,
-                 max_len: int, 
+                 max_len: int,
                  padding_side: str = "left"):
         self.agg_column = agg_column
         self.time_column = time_column
@@ -20,18 +19,18 @@ class PandasPreprocessor:
         self.max_len = max_len
         self.padding_side = padding_side
 
-    def get_sequences(self, dataset: pd.DataFrame) -> list:
+    def get_sequences(self, dataset: pd.DataFrame) -> tuple:
         dataset = dataset.sort_values(
             by=[self.agg_column, self.time_column], ascending=[True, True]
         )
 
         sequences = []
         targets = []
-        
+
         agg_col = dataset[self.agg_column].to_numpy()
         target = dataset[self.target_column].to_numpy()
-        dataset = dataset[self.features].to_numpy()
-        
+        dataset = dataset[self.features].to_numpy().astype("float32")
+
         curr_ind = 0
         curr_val = agg_col[0]
         for i in tqdm(range(agg_col.shape[0])):
@@ -46,10 +45,10 @@ class PandasPreprocessor:
 
     def to_tensor(self, sequences: list) -> list:
         return [torch.tensor(sequence) for sequence in tqdm(sequences)]
-    
+
     def add_batch(self, sequences: list) -> list:
         return [sequence.unsqueeze(dim=0) for sequence in tqdm(sequences)]
-    
+
     def concat(self, sequences: list) -> torch.tensor:
         return torch.cat(sequences, dim=0)
 
@@ -112,26 +111,32 @@ class PandasPreprocessor:
         return sequences, attention_masks.bool(), target
 
 
-class PolarsPreprocessor(PandasPreprocessor):
+class NSPPandasPreprocessor(TargetPandasPreprocessor):
     def __init__(self, agg_column: str, time_column: str, max_len: int, padding_side: str = "left"):
         super().__init__(agg_column, time_column, max_len, padding_side)
 
-    def get_sequences(self, dataset: pl.DataFrame) -> list:
-        dataset = dataset.sort(
-            by=[self.agg_column, self.time_column], reverse=[False, False]
+    def get_sequences(self, dataset: pd.DataFrame) -> tuple:
+        dataset = dataset.sort_values(
+            by=[self.agg_column, self.time_column], ascending=[True, True]
         )
 
         sequences = []
+        targets = []
+
         agg_col = dataset[self.agg_column].to_numpy()
-        dataset = dataset.to_numpy()
+        target_col = dataset[self.target_column].to_numpy()
+        dataset = dataset[self.features].to_numpy().astype("float32")
 
         curr_ind = 0
         curr_val = agg_col[0]
-        for i in tqdm(range(curr_val.shape[0])):
+        for i in tqdm(range(agg_col.shape[0])):
             if agg_col[i] != curr_val:
-                sequences.append(dataset[curr_ind:i])
+                sequence = dataset[curr_ind:i - 1]
+                target = target_col[i - 1]
+                sequences.append(sequence)
+                targets.append(target)
 
                 curr_ind = i
                 curr_val = agg_col[i]
 
-        return sequences
+        return sequences, targets
