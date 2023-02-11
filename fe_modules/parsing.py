@@ -18,7 +18,8 @@ warnings.filterwarnings("ignore")
 
 def get_session(proxy):
     session = requests.Session()
-    session.proxies = {"http": proxy, "https": proxy}
+    if proxy:
+        session.proxies = {"http": proxy, "https": proxy}
     return session
 
 
@@ -123,13 +124,14 @@ class parser:
     def __init__(self):
         self.proxy = random.choice(get_free_proxies())
 
-    def parse_bs(self, url: str, text, metad, timeout):
+    def parse_bs(self, url: str, text, metad, timeout, max_retries):
+        retries = 0
         #self.proxy = random.choice(get_free_proxies())
         while True:
             try:
                 s = get_session(self.proxy)
                 headers = get_headers()
-                res = s.get(url, timeout=timeout, headers=headers)
+                res = s.get(url, timeout=timeout, headers=headers, verify=False)
                 try:
                     res = get_content(res)
 
@@ -138,10 +140,13 @@ class parser:
                     if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
                         url = get_site_name(url)
                         headers = get_headers()
-                        res = s.get(url, timeout=timeout, headers=headers)
+                        res = s.get(url, timeout=timeout, headers=headers, verify=False)
                         res = get_content(res)
                         text = res[0]
                         metad = res[1]
+
+                    elif 'Akado' in text:
+                        self.proxy = random.choice(get_free_proxies())
 
                     elif 'Yandex SmartCaptcha' in text:
                         text = "NULL"
@@ -152,35 +157,44 @@ class parser:
 
                 except Exception as e:
                     pass
-                s.delete(url=url)
+                s.delete(url=url, headers=headers, verify=False)
                 break
 
             except Exception as e:
+                print(e)
                 if isinstance(e, requests.exceptions.ProxyError) or \
                         isinstance(e, requests.exceptions.SSLError):
+
                     self.proxy = random.choice(get_free_proxies())
 
                 elif isinstance(e, TypeError) or \
                         isinstance(e, requests.exceptions.ReadTimeout) or \
-                        isinstance(e,requests.exceptions.TooManyRedirects) or \
-                        isinstance(e, requests.exceptions.ContentDecodingError)or \
-                        isinstance(e,requests.exceptions.ChunkedEncodingError)  or \
-                        isinstance(e, requests.exceptions.ConnectionError):
-                    text = "NULL"
-                    metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
-                    break
-
+                        isinstance(e, requests.exceptions.TooManyRedirects) or \
+                        isinstance(e, requests.exceptions.ContentDecodingError) or \
+                        isinstance(e, requests.exceptions.ChunkedEncodingError):
+                    if retries > max_retries:
+                        text = "NULL"
+                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                        break
+                    retries += 1
+                elif isinstance(e, requests.exceptions.ConnectionError):
+                    if retries > max_retries:
+                        text = "NULL"
+                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                        break
+                    retries += 1
+                    self.proxy = None
                 else:
                     raise e
 
         s.close()
         return text, metad
 
-    def parse_raw_texts(self, url, timeout):
+    def parse_raw_texts(self, url, timeout, max_retries):
         url = url['url_host']
         text = "NULL"
         metad = []
-        text, metad = self.parse_bs(url, text, metad, timeout)
+        text, metad = self.parse_bs(url, text, metad, timeout, max_retries)
         if len(metad) < 5:
             metad = (["NULL"] * (5 - len(metad)))
         metad.append(str(text)[:32760])
@@ -193,15 +207,16 @@ class parser:
         metad = pd.Series({columns[i]: metad[i] for i in range(len(columns))})
         return metad
 
-    def parse(self, sites_path: str, out_path: str, timeout: int, start=-1, end=-1):
+    def parse(self, sites_path: str, out_path: str, n_partitions: int, timeout: int, max_retries: int = 3, start=None,
+              end=None):
         df = pd.read_csv(sites_path)
-        if end == -1:
+        if not end:
             end = df.shape[0] - 1
-        if start == -1:
+        if not start:
             start = 0
         df = df.iloc[start:end]
         df.url_host = df.url_host
-        ddf = dd.from_pandas(df, npartitions=4)
+        ddf = dd.from_pandas(df, npartitions=n_partitions)
         parse_df = {'url': 'object',
                     'title': 'object',
                     'uri': 'object',
@@ -209,7 +224,7 @@ class parser:
                     'site_name': 'object',
                     'keywords': 'object',
                     'text': 'object'}
-        res = ddf.apply(self.parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df), args=(timeout,))
+        res = ddf.apply(self.parse_raw_texts, axis=1, meta=dd.utils.make_meta(parse_df), args=(timeout, max_retries,))
         with ProgressBar():
             dft = res.compute()
         # df = pd.concat([df, dft], axis=1)
