@@ -124,7 +124,7 @@ class parser:
         self.proxy = random.choice(get_free_proxies())
 
     def parse_bs(self, url: str, text, metad, timeout):
-
+        #self.proxy = random.choice(get_free_proxies())
         while True:
             try:
                 s = get_session(self.proxy)
@@ -152,28 +152,35 @@ class parser:
 
                 except Exception as e:
                     pass
+                s.delete(url=url)
                 break
 
             except Exception as e:
-                if isinstance(e, requests.exceptions.ProxyError) or isinstance(e,
-                                                                               requests.exceptions.SSLError) or isinstance(
-                        e, requests.exceptions.ConnectionError):
+                if isinstance(e, requests.exceptions.ProxyError) or \
+                        isinstance(e, requests.exceptions.SSLError):
                     self.proxy = random.choice(get_free_proxies())
-                elif isinstance(e, TypeError) or isinstance(e, requests.exceptions.ReadTimeout):
+
+                elif isinstance(e, TypeError) or \
+                        isinstance(e, requests.exceptions.ReadTimeout) or \
+                        isinstance(e,requests.exceptions.TooManyRedirects) or \
+                        isinstance(e, requests.exceptions.ContentDecodingError)or \
+                        isinstance(e,requests.exceptions.ChunkedEncodingError)  or \
+                        isinstance(e, requests.exceptions.ConnectionError):
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                     break
+
                 else:
                     raise e
 
         s.close()
-        return text, metad, url
+        return text, metad
 
     def parse_raw_texts(self, url, timeout):
         url = url['url_host']
         text = "NULL"
         metad = []
-        text, metad, url = self.parse_bs(url, text, metad, timeout)
+        text, metad = self.parse_bs(url, text, metad, timeout)
         if len(metad) < 5:
             metad = (["NULL"] * (5 - len(metad)))
         metad.append(str(text)[:32760])
