@@ -25,3 +25,5 @@ IPython
 
 category-encoders
 joblib
+
+geopy
