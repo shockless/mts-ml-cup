@@ -33,12 +33,19 @@ def mean_last_visit(df: pd.DataFrame) -> pd.DataFrame:
     return mean_lv
 
 
-def map_cities(df, cities_path='cities_finally.csv'):
+def process_utc(cities: pd.DataFrame, timezone_col: str = "timezone"):
+    cities[timezone_col] = cities[timezone_col].apply(lambda x: int(x.split("+")[1]))
+    return cities
+
+
+def map_cities(df: pd.DataFrame, cities_path: str = 'cities_finally.csv'):
     cities = pandas_reduce_mem_usage(
-        pd.read_csv(cities_path))
+        process_utc(
+            pd.read_csv(cities_path)
+        )
+    )
     df = df.merge(cities, on="city_name", how="left")
     return df
-
 
 def geo_dist(self, loc1: tuple, loc2: tuple) -> float:
     try:

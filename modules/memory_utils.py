@@ -149,3 +149,19 @@ def polars_string_to_cat(df: pl.DataFrame, columns: list):
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
 
     return df
+
+
+def get_suitable_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
+    for col in tqdm(df.columns):
+        col_type = df[col].dtype
+
+        if col_type not in [object, np.uint8, np.uint16, np.uint32, np.uint64]:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == "flo":
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)
+
+    return df
