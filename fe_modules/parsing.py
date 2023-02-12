@@ -1,12 +1,6 @@
-import ssl
-from ctypes import c_char_p
 import random
 import requests
-import urllib3
 from bs4 import BeautifulSoup
-import bs4
-import multiprocessing
-import time
 import pandas as pd
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
@@ -26,7 +20,7 @@ def get_session(proxy):
 def get_site_name(row):
     site = str(row).split('.')
     site[0] = site[0][7:]
-    if (len(site) > 2):
+    if len(site) > 2:
         site = 'http://' + site[-2] + '.' + site[-1]
     else:
         site = row
@@ -73,16 +67,17 @@ def get_meta(soup):
 
 def get_content(res):
     try:
-        s = res.content.decode("utf-8")
+        try:
+            s = res.content.decode("utf-8")
+        except UnicodeDecodeError as e:
+            s = res.text
+
         soup = BeautifulSoup(s, "html.parser")
         metad = list(get_meta(soup))
         for data in soup(['style', 'script', 'img']):
             data.decompose()
 
         text = ''.join(soup.stripped_strings)
-    except UnicodeDecodeError as e:
-        text = "NULL"
-        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
     except requests.exceptions.ContentDecodingError as e:
         text = "NULL"
         metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
@@ -119,6 +114,15 @@ def get_headers():
     return headers
 
 
+def get_content_url(url, proxy=None, timeout=5, verify=False, headers={}):
+    s = get_session(proxy)
+    res = s.get(url, timeout=timeout, verify=verify, headers=headers)
+    res = get_content(res)
+    s.delete(url=url, headers=headers)
+    s.close()
+    return res[0], res[1]
+
+
 class parser:
 
     def __init__(self):
@@ -126,48 +130,57 @@ class parser:
 
     def parse_bs(self, url: str, text, metad, timeout, max_retries):
         retries = 0
-        #self.proxy = random.choice(get_free_proxies())
-        while True:
+        if len(str(url).split('.')) > 1:
             try:
-                s = get_session(self.proxy)
-                headers = get_headers()
-                res = s.get(url, timeout=timeout, headers=headers, verify=False)
-                try:
-                    res = get_content(res)
+                text, metad = get_content_url(url, None, timeout)
 
-                    text = res[0]
-                    metad = res[1]
-                    if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
+                if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
+
+                    try:
                         url = get_site_name(url)
-                        headers = get_headers()
-                        res = s.get(url, timeout=timeout, headers=headers, verify=False)
-                        res = get_content(res)
-                        text = res[0]
-                        metad = res[1]
+                        text, metad = get_content_url(url, None, timeout)
 
-                    elif 'Akado' in text:
-                        self.proxy = random.choice(get_free_proxies())
+                        if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden' or \
+                                'Akado' in text or \
+                                'Ресурс заблокирован' in text or \
+                                'Доступ к сайту заблокирован системой контент-фильтрации' in text:
+                            for i in range(max_retries):
+                                try:
 
-                    elif 'Yandex SmartCaptcha' in text:
-                        text = "NULL"
-                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                                    self.proxy = random.choice(get_free_proxies())
+                                    headers = get_headers()
+                                    text, metad = get_content_url(url, self.proxy, timeout, False, headers)
+                                    if text == '':
+                                        text = "NULL"
+                                    break
 
-                    if text == '':
-                        text = "NULL"
+                                except Exception as e:
+                                    if isinstance(e, requests.exceptions.ProxyError) or \
+                                            isinstance(e, requests.exceptions.SSLError):
+                                        self.proxy = random.choice(get_free_proxies())
 
-                except Exception as e:
-                    pass
-                s.delete(url=url, headers=headers, verify=False)
-                break
+                    except Exception as e:
+                        raise e
 
-            except Exception as e:
-                print(e)
-                if isinstance(e, requests.exceptions.ProxyError) or \
-                        isinstance(e, requests.exceptions.SSLError):
+                elif 'Akado' in text or 'Ресурс заблокирован' in text or 'Доступ к сайту заблокирован системой контент-фильтрации' in text:
+                    for i in range(max_retries):
+                        try:
+                            self.proxy = random.choice(get_free_proxies())
+                            s = get_session(self.proxy)
+                            headers = get_headers()
+                            text, metad = get_content_url(url, self.proxy, timeout, False, headers)
+                            break
 
-                    self.proxy = random.choice(get_free_proxies())
+                        except Exception as e:
+                            if isinstance(e, requests.exceptions.ProxyError) or \
+                                    isinstance(e, requests.exceptions.SSLError):
+                                self.proxy = random.choice(get_free_proxies())
 
-                elif isinstance(e, TypeError) or \
+                elif 'Yandex SmartCaptcha' in text:
+                    text = "NULL"
+                    metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+
+                '''elif isinstance(e, TypeError) or \
                         isinstance(e, requests.exceptions.ReadTimeout) or \
                         isinstance(e, requests.exceptions.TooManyRedirects) or \
                         isinstance(e, requests.exceptions.ContentDecodingError) or \
@@ -185,9 +198,24 @@ class parser:
                     retries += 1
                     self.proxy = None
                 else:
-                    raise e
+                    raise e'''
+            except Exception as e:
 
-        s.close()
+                if isinstance(e, requests.exceptions.InvalidURL) or \
+                        isinstance(e, requests.exceptions.ReadTimeout) or \
+                        isinstance(e, requests.exceptions.TooManyRedirects) or \
+                        isinstance(e, requests.exceptions.ConnectTimeout) or \
+                        isinstance(e, requests.exceptions.ConnectionError):
+                    try:
+                        url = get_site_name(url)
+                        text, metad = get_content_url(url, None, timeout)
+                    except:
+                        text = "NULL"
+                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                else:
+                    print(url)
+                    raise e
+        print(url)
         return text, metad
 
     def parse_raw_texts(self, url, timeout, max_retries):
