@@ -35,7 +35,7 @@ def get_day_of_week(df: pd.DataFrame, date_col: str = "date", alias: str = "day_
 
 def get_holiday_name(df: pd.DataFrame, date_col: str = "date", alias: str = "holiday") -> pd.DataFrame:
     mapper = dict()
-    for i in range(8):
+    for i in range(1, 9):
         mapper[f"1-{i}"] = "Новогодние каникулы"
     mapper[f"1-7"] = "Рождество Христово"
     mapper[f"2-23"] = "День защитника Отечества"

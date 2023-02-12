@@ -1,10 +1,11 @@
 import warnings
 
-import polars as pl
+import pandas as pd
 
 
-def null_check(df: pl.DataFrame) -> None:
-    if df.null_count().to_numpy()[0].sum() > 0:
+def null_check(df: pd.DataFrame) -> None:
+    missing = df.isnull().sum()
+    if missing.sum() > 0:
         warnings.warn(f"""
-                Warning! Detected null column values {dict(zip(df.columns, df.null_count().to_numpy()[0]))}
+                Warning! Detected null column values {dict(zip(df.columns, missing))}
             """)
