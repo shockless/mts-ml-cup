@@ -27,3 +27,4 @@ category-encoders
 joblib
 
 geopy
+scipy
