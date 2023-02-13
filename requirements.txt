@@ -19,6 +19,7 @@ plotly
 beautifulsoup4
 requests
 xlwt
+xlsxwriter
 
 jupyter
 IPython

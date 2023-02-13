@@ -68,24 +68,36 @@ def get_meta(soup):
 def get_content(res):
     try:
         try:
-            s = res.content.decode("utf-8")
+            enc = res.encoding
+            if enc:
+                if enc == 'Win1251' or enc=='win-1251':
+                    enc='cp1251'
+                s = res.content.decode(enc, errors= 'replace').encode('utf-8', errors= 'replace')
+            else:
+                s = res.content.decode('utf-8', errors= 'replace').encode('utf-8', errors= 'replace')
         except UnicodeDecodeError as e:
+            print(enc)
             try:
-                s = str(res.text).encode('utf-8', errors="ignore")
+                enc = res.encoding
+                if enc:
+                    s=res.text.decode(enc, errors= 'replace')
+                else:
+                    s=res.text.decode('utf-8', errors= 'replace')
             except:
-                text = "NULL"
-                metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
-                return [text, metad]
+                raise e
 
         soup = BeautifulSoup(s, "html.parser")
         metad = list(get_meta(soup))
         for data in soup(['style', 'script', 'img']):
             data.decompose()
 
-        text = ''.join(soup.stripped_strings)
+        text = str(''.join(soup.stripped_strings))
     except requests.exceptions.ContentDecodingError as e:
+        print(e)
         text = "NULL"
         metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+    except:
+        raise e
     return [text, metad]
 
 
@@ -96,7 +108,7 @@ def get_free_proxies():
     for row in soup.find_all("table")[0].find_all("tr")[1:]:
         tds = row.find_all("td")
         try:
-            if tds[4].text.strip() == 'elite proxy' and tds[6].text.strip() == 'yes' :
+            if tds[4].text.strip() == 'elite proxy' and tds[6].text.strip() == 'yes':
                 ip = tds[0].text.strip()
                 port = tds[1].text.strip()
                 host = f"{ip}:{port}"
@@ -123,7 +135,10 @@ def get_content_url(url, proxy=None, timeout=5, verify=False, headers={}):
     s = get_session(proxy)
     res = s.get(url, timeout=timeout, verify=verify, headers=headers)
     res = get_content(res)
-    s.delete(url=url, headers=headers)
+    try:
+        s.delete(url=url, headers=headers,timeout=timeout)
+    except:
+        pass
     s.close()
     return res[0], res[1]
 
@@ -134,7 +149,6 @@ class parser:
         self.proxy = random.choice(get_free_proxies())
 
     def parse_bs(self, url: str, text, metad, timeout, max_retries):
-        retries = 0
         if len(str(url).split('.')) > 1:
             try:
                 text, metad = get_content_url(url, None, timeout)
@@ -145,65 +159,13 @@ class parser:
                         url = get_site_name(url)
                         text, metad = get_content_url(url, None, timeout)
 
-                        if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden' or \
-                                'Akado' in text or \
-                                'Ресурс заблокирован' in text or \
-                                'Доступ к сайту заблокирован системой контент-фильтрации' in text:
-                            for i in range(max_retries):
-                                try:
-
-                                    self.proxy = random.choice(get_free_proxies())
-                                    headers = get_headers()
-                                    text, metad = get_content_url(url, self.proxy, timeout, False, headers)
-                                    if text == '':
-                                        text = "NULL"
-                                    break
-
-                                except Exception as e:
-                                    if isinstance(e, requests.exceptions.ProxyError) or \
-                                            isinstance(e, requests.exceptions.SSLError):
-                                        self.proxy = random.choice(get_free_proxies())
-
                     except Exception as e:
                         raise e
-
-                elif 'Akado' in text or 'Ресурс заблокирован' in text or 'Доступ к сайту заблокирован системой контент-фильтрации' in text:
-                    for i in range(max_retries):
-                        try:
-                            self.proxy = random.choice(get_free_proxies())
-                            s = get_session(self.proxy)
-                            headers = get_headers()
-                            text, metad = get_content_url(url, self.proxy, timeout, False, headers)
-                            break
-
-                        except Exception as e:
-                            if isinstance(e, requests.exceptions.ProxyError) or \
-                                    isinstance(e, requests.exceptions.SSLError):
-                                self.proxy = random.choice(get_free_proxies())
 
                 elif 'Yandex SmartCaptcha' in text:
                     text = "NULL"
                     metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
 
-                '''elif isinstance(e, TypeError) or \
-                        isinstance(e, requests.exceptions.ReadTimeout) or \
-                        isinstance(e, requests.exceptions.TooManyRedirects) or \
-                        isinstance(e, requests.exceptions.ContentDecodingError) or \
-                        isinstance(e, requests.exceptions.ChunkedEncodingError):
-                    if retries > max_retries:
-                        text = "NULL"
-                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
-                        break
-                    retries += 1
-                elif isinstance(e, requests.exceptions.ConnectionError):
-                    if retries > max_retries:
-                        text = "NULL"
-                        metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
-                        break
-                    retries += 1
-                    self.proxy = None
-                else:
-                    raise e'''
             except Exception as e:
 
                 if isinstance(e, requests.exceptions.InvalidURL) or \
@@ -213,9 +175,10 @@ class parser:
                         isinstance(e, requests.exceptions.ConnectionError) or \
                         isinstance(e, requests.exceptions.ContentDecodingError):
                     try:
-                        url = get_site_name(url)
-                        text, metad = get_content_url(url, None, timeout)
+
+                        text, metad = get_content_url(url, None, timeout,headers=get_headers())
                     except:
+                        print(e)
                         text = "NULL"
                         metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
                 else:
@@ -262,4 +225,4 @@ class parser:
         with ProgressBar():
             dft = res.compute()
         # df = pd.concat([df, dft], axis=1)
-        dft.to_csv(out_path)
+        dft.to_excel(out_path)
