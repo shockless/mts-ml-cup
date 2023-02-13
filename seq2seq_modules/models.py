@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from seq2seq_modules.layers import TrainablePositionalEncoding, PositionalEncoding, EventEncoder, AttentionPooling
-from utils import generate_square_subsequent_mask
+from seq2seq_modules.utils import generate_square_subsequent_mask
 
 
 class LSTMModel(nn.Module):

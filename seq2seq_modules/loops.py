@@ -7,7 +7,7 @@ import torch
 from transformers import get_constant_schedule
 # import wandb
 from sklearn.model_selection import StratifiedKFold, KFold
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from utils import save_model
 
