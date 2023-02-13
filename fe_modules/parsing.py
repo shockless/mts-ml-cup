@@ -70,7 +70,12 @@ def get_content(res):
         try:
             s = res.content.decode("utf-8")
         except UnicodeDecodeError as e:
-            s = res.text
+            try:
+                s = str(res.text).encode('utf-8', errors="ignore")
+            except:
+                text = "NULL"
+                metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
+                return [text, metad]
 
         soup = BeautifulSoup(s, "html.parser")
         metad = list(get_meta(soup))
@@ -91,7 +96,7 @@ def get_free_proxies():
     for row in soup.find_all("table")[0].find_all("tr")[1:]:
         tds = row.find_all("td")
         try:
-            if tds[4].text.strip() == 'elite proxy' and tds[6].text.strip() == 'yes' and tds[5].text.strip() == 'yes':
+            if tds[4].text.strip() == 'elite proxy' and tds[6].text.strip() == 'yes' :
                 ip = tds[0].text.strip()
                 port = tds[1].text.strip()
                 host = f"{ip}:{port}"
@@ -205,7 +210,8 @@ class parser:
                         isinstance(e, requests.exceptions.ReadTimeout) or \
                         isinstance(e, requests.exceptions.TooManyRedirects) or \
                         isinstance(e, requests.exceptions.ConnectTimeout) or \
-                        isinstance(e, requests.exceptions.ConnectionError):
+                        isinstance(e, requests.exceptions.ConnectionError) or \
+                        isinstance(e, requests.exceptions.ContentDecodingError):
                     try:
                         url = get_site_name(url)
                         text, metad = get_content_url(url, None, timeout)
@@ -256,4 +262,4 @@ class parser:
         with ProgressBar():
             dft = res.compute()
         # df = pd.concat([df, dft], axis=1)
-        dft.to_excel(out_path)
+        dft.to_csv(out_path)
