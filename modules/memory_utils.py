@@ -29,9 +29,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
                 elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
                     df[col] = df[col].astype(np.int64)
             else:
-                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
-                    df[col] = df[col].astype(np.float16)
-                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
                     df[col] = df[col].astype(np.float32)
                 else:
                     df[col] = df[col].astype(np.float64)
@@ -80,18 +78,6 @@ def polars_reduce_mem_usage(df: pl.DataFrame) -> pl.DataFrame:
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
 
     return df
-
-
-def my_reset(varnames):
-    """
-    varnames are what you want to keep
-    """
-    globals_ = globals()
-    to_save = {v: globals_[v] for v in varnames}
-    to_save["my_reset"] = my_reset  # let's keep this function by default
-    del globals_
-    get_ipython().magic("reset")
-    globals().update(to_save)
 
     
 def pandas_string_to_cat(df: pl.DataFrame, columns: list):
@@ -165,3 +151,4 @@ def get_suitable_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
                     df[col] = df[col].astype(np.float64)
 
     return df
+

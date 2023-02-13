@@ -29,13 +29,13 @@ class TargetPandasPreprocessor:
 
         agg_col = dataset[self.agg_column].to_numpy()
         target = dataset[self.target_column].to_numpy()
-        dataset = dataset[self.features].to_numpy().astype("float32")
+        dataset = dataset[self.features]
 
         curr_ind = 0
         curr_val = agg_col[0]
         for i in tqdm(range(agg_col.shape[0])):
             if agg_col[i] != curr_val:
-                sequences.append(dataset[curr_ind:i])
+                sequences.append(dataset.iloc[curr_ind:i].to_numpy())
                 targets.append(target[curr_ind:i][0])
 
                 curr_ind = i

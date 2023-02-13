@@ -1,4 +1,5 @@
 import bisect
+import random
 
 import numpy as np
 import torch
@@ -32,3 +33,10 @@ def numpy_age_bucket(x):
 
 def save_model(model, folder, filename):
     torch.save(model, f"{folder}/{filename}.pt")
+
+
+def fix_random_state(random_state: int = 42):
+    random.seed(random_state)
+    np.random.seed(random_state)
+    torch.manual_seed(random_state)
+    torch.cuda.manual_seed_all(random_state)

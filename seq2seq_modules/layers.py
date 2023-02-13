@@ -33,21 +33,21 @@ class EventEncoder(nn.Module):
             (len(self.vocab_sizes) + 1) * self.hidden_dim, self.output_dim
         )
 
-    def forward(self, input_features: torch.Tensor) -> torch.Tensor:
+    def forward(self, cat_features: torch.Tensor, cont_features: torch.Tensor) -> torch.Tensor:
         """
         :praram input_features:
         :returns:
         """
         cat_embeddings = torch.cat([
                 self.cat_embeddings[i](
-                    input_features[:, :, self.cat_feature_indexes[i]].long()
+                    cat_features[:, :, self.cat_feature_indexes[i]].long()
                 )
                 for i in range(len(self.cat_feature_indexes))
             ], dim=2
         )
 
         cont_embeddings = self.cont_embeddings(
-            self.batch_norm(input_features[:, :, self.cont_feature_indexes].permute(0, 2, 1).float()).permute(0, 2, 1)
+            self.batch_norm(cont_features[:, :, self.cont_feature_indexes].permute(0, 2, 1).float()).permute(0, 2, 1)
         )
 
         whole_embeddings = torch.cat([cat_embeddings, cont_embeddings], dim=2)

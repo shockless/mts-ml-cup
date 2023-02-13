@@ -47,7 +47,8 @@ def map_cities(df: pd.DataFrame, cities_path: str = 'cities_finally.csv'):
     df = df.merge(cities, on="city_name", how="left")
     return df
 
-def geo_dist(self, loc1: tuple, loc2: tuple) -> float:
+
+def geo_dist(loc1: tuple, loc2: tuple) -> float:
     try:
         dist = geodesic(loc1, loc2).km
     except ValueError:
@@ -90,10 +91,10 @@ class MapGridTransformer(BaseEstimator, TransformerMixin):
         self.lon_min, self.lon_max = loc[:, 1].min(), loc[:, 1].max()
 
     def fit(self):
-        self.walls = [(self.location_mh[:, 0].max() - self.location_mh[:, 0].min()) / self.col, \
+        self.walls = [(self.location_mh[:, 0].max() - self.location_mh[:, 0].min()) / self.col,
                       (self.location_mh[:, 1].max() - self.location_mh[:, 1].min()) / self.row]
 
-        self.circles_loc = np.array([(((self.location_mh[:, 0].min() + i * (self.walls[0] / 2))), \
+        self.circles_loc = np.array([(((self.location_mh[:, 0].min() + i * (self.walls[0] / 2))),
                                       (self.location_mh[:, 1].min() + j * (self.walls[1] / 2))) \
                                      for i in range(1, (self.col) * 2, 2) for j in range(1, (self.row) * 2, 2)])
 
