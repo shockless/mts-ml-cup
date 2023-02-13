@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 class TargetPandasPreprocessor:
@@ -101,10 +101,14 @@ class TargetPandasPreprocessor:
     def transform(self, dataset: pd.DataFrame) -> tuple:
         sequences, target = self.get_sequences(dataset)
         target = torch.tensor(target).long()
+
         if self.padding_side.lower() == "right":
             sequences, attention_masks = self.right_pad_and_truncate(sequences)
         elif self.padding_side.lower() == "left":
             sequences, attention_masks = self.left_pad_and_truncate(sequences)
+        else:
+            raise ValueError("Expected padding_side to be either 'right' of 'left'")
+
         sequences = self.concat(self.add_batch(self.to_tensor(sequences)))
         attention_masks = self.concat(self.add_batch(self.to_tensor(attention_masks)))
 
