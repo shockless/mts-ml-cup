@@ -19,7 +19,7 @@ class LaBSEWrapper:
         attention_mask = tokenized_inputs["attention_mask"]
 
         dataset = TensorDataset(input_ids, attention_mask)
-        dataloader = DataLoader(dataset, batch_size=batch_size)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         outputs = list()
 
