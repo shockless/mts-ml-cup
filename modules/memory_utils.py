@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 import polars as pl
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from IPython import get_ipython
 
 
-def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
+def pandas_reduce_mem_usage(df: pd.DataFrame, columns=None) -> pd.DataFrame:
     """
     iterate through all the columns of a dataframe and modify the data type
     to reduce memory usage.
@@ -13,10 +13,12 @@ def pandas_reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
     start_mem = df.memory_usage().sum() / 1024 ** 2
     print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
 
-    for col in tqdm(df.columns):
+    columns = tqdm(columns) if columns else tqdm(df.columns)
+
+    for col in columns:
         col_type = df[col].dtype
 
-        if col_type not in [object, np.uint8, np.uint16, np.uint32, np.uint64]:
+        if col_type not in [object, np.uint8, np.uint16, np.uint32, np.uint64, 'Timestamp']:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == "int":
