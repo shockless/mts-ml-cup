@@ -5,6 +5,7 @@ from geopy.distance import geodesic
 from sklearn.base import BaseEstimator, TransformerMixin
 from scipy.spatial.distance import cdist
 import numpy as np
+from tqdm.auto import tqdm
 
 LARGE_CITIES = {'Moscow': (55.755864, 37.617698),
                 'SaintP': (59.938955, 30.315644),
@@ -57,12 +58,18 @@ def geo_dist(loc1: tuple, loc2: tuple) -> float:
 
 
 def dist_to_large_cities(df) -> pd.DataFrame:
-    df['lat_long'] = tuple(zip(df.latitude, df.longitude))
+    unique_cities = df.drop_duplicates(subset=["city_name"])[["city_name", "geo_lat", "geo_lon"]]
+    unique_cities['lat_long'] = tuple(zip(unique_cities.geo_lat, unique_cities.geo_lon))
 
-    for name, loc in LARGE_CITIES.items():
+    for name, loc in tqdm(LARGE_CITIES.items()):
         col_name = f'dist_to_{name}'
-        df[col_name] = df['lat_long'].apply(lambda x: geodesic(x, loc).km)
-    del df['lat_long']
+        unique_cities[col_name] = unique_cities['lat_long'].apply(lambda x: geodesic(x, loc).km)
+
+    del unique_cities['lat_long']
+
+    unique_cities = pandas_reduce_mem_usage(unique_cities)
+    df = df.merge(unique_cities, how="left", on="city_name")
+
     return df
 
 

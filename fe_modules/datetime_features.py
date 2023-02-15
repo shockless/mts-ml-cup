@@ -1,6 +1,8 @@
 import pandas as pd
 from pandas import Timedelta
 
+from modules.memory_utils import pandas_reduce_mem_usage
+
 
 def get_year(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
     df["year"] = pd.DatetimeIndex(df[date_col]).year
@@ -17,7 +19,7 @@ def get_day(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
     return df
 
 
-def get_timestamp(df: pd.DataFrame, date_col: str = "date", alias: str = "timestamp",
+def get_timestamp(df: pd.DataFrame, date_col: str = "datetime", alias: str = "timestamp",
                   scaler: int = 10e9) -> pd.DataFrame:
     df[alias] = pd.DatetimeIndex(df[date_col]).astype(int) / scaler
     return df
@@ -75,15 +77,13 @@ def add_hour_to_date(df: pd.DataFrame, date_col: str = "date", hour_col: str = "
 
 def get_relative_time(df: pd.DataFrame,
                       agg_col: str = "user_id",
-                      date_col: str = "datetime",
-                      alias: str = "relative_date",
-                      return_dtype: str = "timedelta",
+                      date_col: str = "timestamp",
+                      alias: str = "relative_timestamp",
                       scaler: int = 100) -> pd.DataFrame:
-    last_dates = pd.DataFrame(df.groupby([agg_col])[date_col].max()).rename(columns={date_col: "last_date"})
+    last_dates = pandas_reduce_mem_usage(pd.DataFrame(df.groupby([agg_col])[date_col].max()).rename(columns={date_col: "last_timestamp"}))
     df = df.merge(last_dates, on=agg_col, how="left")
-    if return_dtype == "timedelta":
-        df[alias] = df["last_date"] - df[date_col]
-    elif return_dtype == "timestamp":
-        df[alias] = (df["last_date"] - df[date_col]).dt.total_seconds() / scaler
-    df = df.drop(["last_date"], axis=1)
+
+    df[alias] = (df["last_timestamp"] - df[date_col]) / scaler
+
+    df = pandas_reduce_mem_usage(df.drop(["last_timestamp"], axis=1), columns=[alias])
     return df

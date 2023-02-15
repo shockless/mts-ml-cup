@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def get_agg_count(df: pd.DataFrame,
-                  agg_col: list = ["user_id"],
+                  agg_col: str = "user_id",
                   target_col: str = None,
                   alias: str = None,
                   sort: bool = False) -> pd.DataFrame:
@@ -20,7 +20,7 @@ def get_agg_count(df: pd.DataFrame,
 
 
 def get_agg_sum(df: pd.DataFrame,
-                agg_col: list = ["user_id"],
+                agg_col: str = "user_id",
                 target_col: str = None,
                 alias: str = None,
                 sort: bool = False) -> pd.DataFrame:
@@ -38,7 +38,7 @@ def get_agg_sum(df: pd.DataFrame,
 
 
 def get_agg_mode(df: pd.DataFrame,
-                 agg_col: list = ["user_id"],
+                 agg_col: str = "user_id",
                  target_col: str = None,
                  alias: str = None,
                  sort: bool = False) -> pd.DataFrame:
@@ -56,7 +56,7 @@ def get_agg_mode(df: pd.DataFrame,
 
 
 def get_agg_mean(df: pd.DataFrame,
-                 agg_col: list = ["user_id"],
+                 agg_col: str = "user_id",
                  target_col: str = None,
                  alias: str = None,
                  sort: bool = False) -> pd.DataFrame:
@@ -74,7 +74,7 @@ def get_agg_mean(df: pd.DataFrame,
 
 
 def get_agg_max(df: pd.DataFrame,
-                agg_col: list = ["user_id"],
+                agg_col: str = "user_id",
                 target_col: str = None,
                 alias: str = None,
                 sort: bool = False) -> pd.DataFrame:
@@ -92,7 +92,7 @@ def get_agg_max(df: pd.DataFrame,
 
 
 def get_agg_min(df: pd.DataFrame,
-                agg_col: list = ["user_id"],
+                agg_col: str = "user_id",
                 target_col: str = None,
                 alias: str = None,
                 sort: bool = False) -> pd.DataFrame:
@@ -110,7 +110,7 @@ def get_agg_min(df: pd.DataFrame,
 
 
 def get_agg_median(df: pd.DataFrame,
-                   agg_col: list = ["user_id"],
+                   agg_col: str = "user_id",
                    target_col: str = None,
                    alias: str = None,
                    sort: bool = False) -> pd.DataFrame:
@@ -128,7 +128,7 @@ def get_agg_median(df: pd.DataFrame,
 
 
 def get_agg_std(df: pd.DataFrame,
-                agg_col: list = ["user_id"],
+                agg_col: str = "user_id",
                 target_col: str = None,
                 alias: str = None,
                 sort: bool = False) -> pd.DataFrame:
@@ -146,7 +146,7 @@ def get_agg_std(df: pd.DataFrame,
 
 
 def get_agg_nunique(df: pd.DataFrame,
-                    agg_col: list = ["user_id"],
+                    agg_col: str = "user_id",
                     target_col: str = None,
                     alias: str = None,
                     sort: bool = False) -> pd.DataFrame:
@@ -164,7 +164,7 @@ def get_agg_nunique(df: pd.DataFrame,
 
 
 def get_price_of_all_cpes(df: pd.DataFrame,
-                          agg_col: list = ["user_id"],
+                          agg_col: str = "user_id",
                           target_col: str = None,
                           alias: str = None,
                           sort: bool = False) -> pd.DataFrame:
