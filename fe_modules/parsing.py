@@ -70,19 +70,19 @@ def get_content(res):
         try:
             enc = res.encoding
             if enc:
-                if enc == 'Win1251' or enc=='win-1251':
-                    enc='cp1251'
-                s = res.content.decode(enc, errors= 'replace').encode('utf-8', errors= 'replace')
+                if enc == 'Win1251' or enc == 'win-1251':
+                    enc = 'cp1251'
+                s = res.content.decode(enc, errors='replace').encode('utf-8', errors='replace')
             else:
-                s = res.content.decode('utf-8', errors= 'replace').encode('utf-8', errors= 'replace')
+                s = res.content.decode('utf-8', errors='replace').encode('utf-8', errors='replace')
         except UnicodeDecodeError as e:
             print(enc)
             try:
                 enc = res.encoding
                 if enc:
-                    s=res.text.decode(enc, errors= 'replace')
+                    s = res.text.decode(enc, errors='replace')
                 else:
-                    s=res.text.decode('utf-8', errors= 'replace')
+                    s = res.text.decode('utf-8', errors='replace')
             except:
                 raise e
 
@@ -136,7 +136,7 @@ def get_content_url(url, proxy=None, timeout=5, verify=False, headers={}):
     res = s.get(url, timeout=timeout, verify=verify, headers=headers)
     res = get_content(res)
     try:
-        s.delete(url=url, headers=headers,timeout=timeout)
+        s.delete(url=url, headers=headers, timeout=timeout)
     except:
         pass
     s.close()
@@ -151,7 +151,7 @@ class parser:
     def parse_bs(self, url: str, text, metad, timeout, max_retries):
         if len(str(url).split('.')) > 1:
             try:
-                text, metad = get_content_url(url, None, timeout)
+                text, metad = get_content_url(url, None, timeout, headers=get_headers())
 
                 if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
 
@@ -176,7 +176,7 @@ class parser:
                         isinstance(e, requests.exceptions.ContentDecodingError):
                     try:
 
-                        text, metad = get_content_url(url, None, timeout,headers=get_headers())
+                        text, metad = get_content_url(url, None, timeout, headers=get_headers())
                     except:
                         print(e)
                         text = "NULL"
