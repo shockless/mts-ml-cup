@@ -20,6 +20,7 @@ beautifulsoup4
 requests
 xlwt
 xlsxwriter
+openpyxl
 
 jupyter
 IPython
@@ -29,3 +30,4 @@ joblib
 
 geopy
 scipy
+dask
