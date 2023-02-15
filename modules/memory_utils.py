@@ -7,7 +7,7 @@ from IPython import get_ipython
 
 def pandas_reduce_mem_usage(df: pd.DataFrame, columns=None) -> pd.DataFrame:
     """
-    iterate through all the columns of a dataframe and modify the data type
+    iterate through all the columns of a dataframe and modify the external_data type
     to reduce memory usage.
     """
     start_mem = df.memory_usage().sum() / 1024 ** 2
@@ -45,7 +45,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame, columns=None) -> pd.DataFrame:
 
 def polars_reduce_mem_usage(df: pl.DataFrame) -> pl.DataFrame:
     """
-    iterate through all the columns of a dataframe and modify the data type
+    iterate through all the columns of a dataframe and modify the external_data type
     to reduce memory usage.
     """
     start_mem = df.estimated_size() / 1024 ** 2
