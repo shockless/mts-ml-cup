@@ -1,9 +1,8 @@
 import torch
-
 # from torchmetrics import AUROC, F1Score
 from sklearn.metrics import f1_score, roc_auc_score
 
-from utils import numpy_age_bucket
+from seq2seq_modules.utils import numpy_age_bucket
 
 
 def GENDER_METRIC(logits, targets):

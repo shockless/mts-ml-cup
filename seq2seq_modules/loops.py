@@ -4,12 +4,12 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-from transformers import get_constant_schedule
 # import wandb
 from sklearn.model_selection import StratifiedKFold, KFold
 from tqdm.auto import tqdm
+from transformers import get_constant_schedule
 
-from utils import save_model, fix_random_state
+from seq2seq_modules.utils import save_model, fix_random_state
 
 
 def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device, metric_func):
@@ -107,7 +107,7 @@ def cross_validation(
         num_warmup_steps: int = 0,
         start_fold: int = 0,
         batch_size: int = 32,
-):
+    ):
     loss_function.to(device)
 
     if type(strat_array) != type(None):
@@ -117,23 +117,18 @@ def cross_validation(
         kfold = KFold(n_folds, shuffle=shuffle, random_state=random_state)
         split = kfold.split(dataset)
 
+    fold_train_scores = []
+    fold_eval_scores = []
+
+    os.mkdir(project_name)
+
     for fold, (train_ids, eval_ids) in enumerate(split):
         if fold >= start_fold:
             print(f"FOLD {fold}")
             print("--------------------------------")
 
-            #             run = wandb.init(
-            #                 name=f"fold_{fold}",
-            #                 project=f"{project_name}_fold_{fold}",
-            #                 config={
-            #                     "random_state": random_state,
-            #                     "shuffle": shuffle,
-            #                     "epochs": epochs,
-            #                     "learning_rate": lr,
-            #                     "batch_size": batch_size,
-            #                     # "iters_to_accumulate": iters_to_accumulate
-            #                 },
-            #             )
+            epoch_train_scores = []
+            epoch_eval_scores = []
 
             fold_model = deepcopy(model)
 
@@ -188,15 +183,20 @@ def cross_validation(
                     metric_func
                 )
 
+                epoch_train_scores.append(train_metrics)
+                epoch_eval_scores.append(eval_metrics)
+
                 print(f"EPOCH: {epoch_i}")
                 print(train_metrics)
                 print(eval_metrics)
 
+                with open(f"{project_name}/fold_{fold}_epoch_{epoch_i}.txt", "w") as fout:
+                    print(train_metrics, eval_metrics, sep="\n", file=fout)
 
-#                 run.log(train_metrics)
-#                 run.log(eval_metrics)
+    fold_train_scores.append(epoch_train_scores)
+    fold_eval_scores.append(epoch_eval_scores)
 
-#             run.finish()
+    return fold_train_scores, fold_eval_scores
 
 
 def single_model_training(

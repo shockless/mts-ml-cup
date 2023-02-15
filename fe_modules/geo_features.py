@@ -1,4 +1,4 @@
-from aggregates import get_agg_mean, get_agg_min, get_agg_max
+from fe_modules.aggregates import get_agg_mean, get_agg_min, get_agg_max
 import pandas as pd
 from modules.memory_utils import pandas_reduce_mem_usage
 from geopy.distance import geodesic
@@ -68,7 +68,7 @@ def dist_to_large_cities(df) -> pd.DataFrame:
     del unique_cities['lat_long']
 
     unique_cities = pandas_reduce_mem_usage(unique_cities)
-    df = df.merge(unique_cities, how="left", on="city_name")
+    df = df.merge(unique_cities.drop(labels=["geo_lat", "geo_lon"], axis=1), how="left", on="city_name")
 
     return df
 
