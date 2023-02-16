@@ -59,9 +59,10 @@ class LSTMModel(nn.Module):
         event_embeddings = self.event_embedding(cat_features, cont_features)
         event_embeddings = event_embeddings * attention_mask.unsqueeze(2)
         x, (h, c) = self.seq2seq(event_embeddings)
-        out = self.out(h[-1])
+        embedding = h[-1]
+        out = self.out(embedding)
 
-        return out
+        return embedding, out
 
 
 class GRUModel(nn.Module):
@@ -118,7 +119,8 @@ class GRUModel(nn.Module):
         event_embeddings = self.event_embedding(cat_features, cont_features)
         event_embeddings = event_embeddings * attention_mask.unsqueeze(2)
         x, h = self.seq2seq(event_embeddings)
-        out = self.out(h[-1])
+        embedding = h[-1]
+        out = self.out(embedding)
 
         return out
 
@@ -258,9 +260,10 @@ class StarterBERTModel(nn.Module):
                     src_key_padding_mask=key_padding_mask
                 )
 
-        out = self.out(x[:, 0])
+        embedding = x[:, 0]
+        out = self.out(embedding)
 
-        return out
+        return embedding, out
 
 
 class AttentionPoolingBERTModel(nn.Module):
@@ -364,10 +367,10 @@ class AttentionPoolingBERTModel(nn.Module):
             src_key_padding_mask=key_padding_mask
         )
 
-        pooled_x = self.attention_pooling(x, attention_mask)
+        embedding = self.attention_pooling(x, attention_mask)
 
-        out = self.out(pooled_x)
+        out = self.out(embedding)
 
-        return out
+        return embedding, out
 
 # ADD: Attention LSTM

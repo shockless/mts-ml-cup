@@ -18,24 +18,26 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
     dl_size = len(data_loader)
     total_train_loss = 0
 
-    outputs = []
+    embeddings = []
+    logits = []
     targets = []
 
     for batch in tqdm(data_loader):
-        cat_features, cont_features, attention_mask, target = batch
-        cat_features, cont_features, attention_mask, target = (
+        cat_features, cont_features, attention_mask, batch_target = batch
+        cat_features, cont_features, attention_mask, batch_target = (
             cat_features.to(device),
             cont_features.to(device),
             attention_mask.to(device),
-            target.to(device),
+            batch_target.to(device),
         )
 
         optimizer.zero_grad()
-        logits = model(cat_features, cont_features, attention_mask)
-        outputs.append(logits.detach().cpu())
-        targets.append(target.cpu())
+        batch_embeddings, batch_logits = model(cat_features, cont_features, attention_mask)
+        embeddings.append(batch_embeddings.detach().cpu())
+        logits.append(batch_logits.detach().cpu())
+        targets.append(batch_target.cpu())
 
-        loss = loss_function(logits.double(), target)
+        loss = loss_function(batch_logits.double(), batch_target)
         total_train_loss += loss.item()
 
         loss.backward()
@@ -43,13 +45,14 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
         optimizer.step()
         scheduler.step()
 
-    outputs = torch.cat(outputs, dim=0)
+    embeddings = torch.cat(embeddings, dim=0)
+    logits = torch.cat(logits, dim=0)
     targets = torch.cat(targets, dim=0)
 
-    metrics = metric_func(outputs, targets)
+    metrics = metric_func(logits, targets)
     metrics["loss"] = total_train_loss / dl_size
 
-    return metrics
+    return metrics, embeddings, logits, targets
 
 
 def eval_epoch(model, data_loader, loss_function, device, metric_func):
@@ -58,33 +61,36 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
     dl_size = len(data_loader)
     total_train_loss = 0
 
-    outputs = []
+    embeddings = []
+    logits = []
     targets = []
 
     for batch in tqdm(data_loader):
-        cat_features, cont_features, attention_mask, target = batch
-        cat_features, cont_features, attention_mask, target = (
+        cat_features, cont_features, attention_mask, batch_target = batch
+        cat_features, cont_features, attention_mask, batch_target = (
             cat_features.to(device),
             cont_features.to(device),
             attention_mask.to(device),
-            target.to(device),
+            batch_target.to(device),
         )
 
         with torch.no_grad():
-            logits = model(cat_features, cont_features, attention_mask)
-            outputs.append(logits.detach().cpu())
-            targets.append(target.cpu())
+            batch_embeddings, batch_logits = model(cat_features, cont_features, attention_mask)
+            embeddings.append(batch_embeddings.detach().cpu())
+            logits.append(batch_logits.detach().cpu())
+            targets.append(batch_target.cpu())
 
-        loss = loss_function(logits.double(), target)
+        loss = loss_function(batch_logits.double(), batch_target)
         total_train_loss += loss.item()
 
-    outputs = torch.cat(outputs, dim=0)
+    embeddings = torch.cat(embeddings, dim=0)
+    logits = torch.cat(logits, dim=0)
     targets = torch.cat(targets, dim=0)
 
-    metrics = metric_func(outputs, targets)
+    metrics = metric_func(logits, targets)
     metrics["loss"] = total_train_loss / dl_size
 
-    return metrics
+    return metrics, embeddings, logits, targets
 
 
 def cross_validation(
@@ -107,7 +113,7 @@ def cross_validation(
         num_warmup_steps: int = 0,
         start_fold: int = 0,
         batch_size: int = 32,
-    ):
+):
     loss_function.to(device)
 
     if type(strat_array) != type(None):
@@ -166,7 +172,7 @@ def cross_validation(
                 )
 
             for epoch_i in range(epochs):
-                train_metrics = train_epoch(
+                train_metrics, embeddings, logits, targets = train_epoch(
                     fold_model,
                     train_loader,
                     loss_function,
@@ -175,7 +181,7 @@ def cross_validation(
                     device,
                     metric_func,
                 )
-                eval_metrics = eval_epoch(
+                eval_metrics, embeddings, logits, targets = eval_epoch(
                     fold_model,
                     eval_loader,
                     loss_function,
@@ -193,8 +199,8 @@ def cross_validation(
                 with open(f"{project_name}/fold_{fold}_epoch_{epoch_i}.txt", "w") as fout:
                     print(train_metrics, eval_metrics, sep="\n", file=fout)
 
-    fold_train_scores.append(epoch_train_scores)
-    fold_eval_scores.append(epoch_eval_scores)
+        fold_train_scores.append(epoch_train_scores)
+        fold_eval_scores.append(epoch_eval_scores)
 
     return fold_train_scores, fold_eval_scores
 
@@ -244,7 +250,7 @@ def single_model_training(
 
     for epoch_i in range(0, epochs):
         if epoch_i >= start_epoch:
-            train_metrics = train_epoch(
+            train_metrics, embeddings, logits, targets = train_epoch(
                 model,
                 data_loader,
                 loss_function,
@@ -276,9 +282,116 @@ def predict(model, dataset, device: str = 'cuda', batch_size: int = 64) -> torch
         )
 
         with torch.no_grad():
-            logits = model(cat_features, cont_features, attention_mask)
+            embeddings, logits = model(cat_features, cont_features, attention_mask)
             outputs.append(logits.detach().cpu())
 
     outputs = torch.cat(outputs, dim=0)
 
     return outputs
+
+
+def shuffle_eval_epoch(model, data_loader, loss_function, device, metric_func):
+    model.eval()
+
+    dl_size = len(data_loader)
+    total_train_loss = 0
+
+    outputs = []
+    targets = []
+
+    for batch in tqdm(data_loader):
+        cat_features, cont_features, attention_mask, target = batch
+        cat_features, cont_features, attention_mask, target = (
+            cat_features.to(device),
+            cont_features.to(device),
+            attention_mask.to(device),
+            target.to(device),
+        )
+
+        with torch.no_grad():
+            logits = model(cat_features, cont_features, attention_mask)
+            outputs.append(logits.detach().cpu())
+            targets.append(target.cpu())
+
+        loss = loss_function(logits.double(), target)
+        total_train_loss += loss.item()
+
+    outputs = torch.cat(outputs, dim=0)
+    targets = torch.cat(targets, dim=0)
+
+    metrics = metric_func(outputs, targets)
+    metrics["loss"] = total_train_loss / dl_size
+
+    return metrics
+
+
+# def cross_validation_shuffle_importance(
+#         project_name,
+#         models: list,
+#         dataset,
+#         loss_function,
+#         metric_func,
+#         optimizer,
+#         get_scheduler,
+#         strat_array=None,
+#         device=torch.device("cuda"),
+#         random_state: int = 69,
+#         shuffle: bool = True,
+#         dataloader_shuffle=False,
+#         n_folds: int = 4,
+#         epochs: int = 5,
+#         lr: float = 1e-6,
+#         weight_decay: float = 1e-2,
+#         num_warmup_steps: int = 0,
+#         start_fold: int = 0,
+#         batch_size: int = 32,
+# ):
+#     loss_function.to(device)
+#
+#     if type(strat_array) != type(None):
+#         kfold = StratifiedKFold(n_folds, shuffle=shuffle, random_state=random_state)
+#         split = kfold.split(dataset, strat_array)
+#     else:
+#         kfold = KFold(n_folds, shuffle=shuffle, random_state=random_state)
+#         split = kfold.split(dataset)
+#
+#     fold_eval_scores = []
+#
+#     os.mkdir(project_name)
+#
+#     for fold, (train_ids, eval_ids) in enumerate(split):
+#         if fold >= start_fold:
+#             print(f"FOLD {fold}")
+#             print("--------------------------------")
+#
+#             fold_model = deepcopy(models[fold])
+#             fold_model.to(device)
+#
+#             fix_random_state(random_state)
+#             eval_subsampler = torch.utils.data.Subset(dataset, eval_ids)
+#             eval_loader = torch.utils.data.DataLoader(
+#                 eval_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
+#             )
+#
+#             eval_metrics = eval_epoch(
+#                 fold_model,
+#                 eval_loader,
+#                 loss_function,
+#                 device,
+#                 metric_func
+#             )
+#             eval_metrics.append(eval_metrics)
+#
+#             shuffle_scores = []
+#
+#             for i in range(num_features):
+#                 eval_metrics = shuffle_eval_epoch(
+#                     fold_model,
+#                     eval_loader,
+#                     loss_function,
+#                     device,
+#                     metric_func,
+#                     shuffle_feature_ind
+#                 )
+#
+#     return fold_train_scores, fold_eval_scores
