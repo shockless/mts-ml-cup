@@ -18,8 +18,11 @@ COL_NAMES = dict(
     lon="longitude",
 )
 
+
 def get_travel(city_name_col):
-    return (city_name_col!=city_name_col.shift(1)).sum()-1
+    return (city_name_col != city_name_col.shift(1)).sum() - 1
+
+
 def process_utc(cities: pd.DataFrame, timezone_col: str = "timezone"):
     cities[timezone_col] = cities[timezone_col].apply(lambda x: int(x.split("+")[1]))
     return cities
@@ -71,25 +74,27 @@ def map_grid(df: pd.DataFrame, col=30, row=90):
     df['grid'] = map_grider.transform(df[["latitude", "longitude"]])
     return df
 
+
 def get_agg_amount_of_travel(df: pd.DataFrame,
-                agg_col: str = "user_id",
-                target_col: str = 'city_name',
-                timestamp_col: str = 'timestamp',
-                alias: str = None,
-                sort: bool = False) -> pd.DataFrame:
+                             agg_col: str = "user_id",
+                             target_col: str = 'city_name',
+                             timestamp_col: str = 'timestamp',
+                             alias: str = None,
+                             sort: bool = False) -> pd.DataFrame:
     if alias:
         col_name = alias
     else:
         col_name = f'{agg_col}_amount_of_travel'
 
     df = df.merge(df.sort_values(timestamp_col).groupby(agg_col)[target_col].agg(
-    amount_of_travel  = get_travel
-    ).rename(columns={'amount_of_travel':col_name})
-             , how='left', on=agg_col)
+        amount_of_travel=get_travel
+    ).rename(columns={'amount_of_travel': col_name})
+                  , how='left', on=agg_col)
     if sort:
         return df.sort_values(by=agg_col)
 
     return df
+
 
 class MapGridTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, loc, col, row, col_names=COL_NAMES):
