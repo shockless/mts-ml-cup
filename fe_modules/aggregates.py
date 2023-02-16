@@ -198,7 +198,8 @@ def get_top_n_mode(df: pd.DataFrame,
                    agg_col: Union[str, list] = "user_id",
                    target_col: str = None,
                    n: int = 1,
-                   alias: str = None) -> pd.DataFrame:
+                   alias: str = None,
+                   sort: bool = False) -> pd.DataFrame:
     if alias:
         col_name = alias
     else:
@@ -219,4 +220,7 @@ def get_top_n_mode(df: pd.DataFrame,
                        columns=agg_col + [f"{col_name}_{i}" for i in range(n)])
 
     df = df.merge(agg, how="left", on=agg_col)
+    if sort:
+        return df.sort_values(by=agg_col)
+
     return df
