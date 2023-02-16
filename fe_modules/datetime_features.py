@@ -74,6 +74,8 @@ def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", return_dtype
             "evening": 21,
             "night": 3,
         }
+    else:
+        raise Exception("'return_dtype' can take values only 'int' or 'datetime'")
     df[alias] = df[col].map(mapper)
     return df
 
