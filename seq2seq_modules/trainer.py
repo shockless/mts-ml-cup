@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import numpy as np
+import pandas as pd
 import joblib
 import torch
 from sklearn.model_selection import StratifiedKFold, KFold
@@ -31,9 +33,10 @@ class CVTrainer:
                       metric_func,
                       optimizer,
                       get_scheduler,
+                      target_name: str = None,
+                      user_ids: np.ndarray = None,
                       strat_array: torch.tensor = None,
                       shuffle: bool = True,
-                      dataloader_shuffle=False,
                       epochs: int = 5,
                       lr: float = 1e-3,
                       weight_decay: float = 1e-2,
@@ -57,8 +60,10 @@ class CVTrainer:
 
         train_fold_metrics = []
         eval_fold_metrics = []
+        eval_fold_indexes = []
 
         for fold, (train_ids, eval_ids) in enumerate(split):
+            eval_fold_indexes.append(eval_ids)
             print(f"FOLD {fold}")
             print("--------------------------------")
 
@@ -84,13 +89,13 @@ class CVTrainer:
             fix_random_state(random_state)
             train_subsampler = torch.utils.data.Subset(dataset, train_ids)
             train_loader = torch.utils.data.DataLoader(
-                train_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
+                train_subsampler, batch_size=batch_size, shuffle=False
             )
 
             fix_random_state(random_state)
             eval_subsampler = torch.utils.data.Subset(dataset, eval_ids)
             eval_loader = torch.utils.data.DataLoader(
-                eval_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
+                eval_subsampler, batch_size=batch_size, shuffle=False
             )
 
             total_steps = len(train_loader) * epochs
@@ -139,15 +144,37 @@ class CVTrainer:
 
             self.fold_models.append(fold_model)
             fold_embeddings.append(eval_embeddings)
+
+            if eval_logits.shape[1] <= 2:
+                eval_logits = torch.sigmoid(eval_logits)
+            else:
+                eval_logits = torch.softmax(eval_logits, dim=1)
             fold_logits.append(eval_logits)
             fold_targets.append(eval_targets)
 
         self.fitted = True
 
-        return train_fold_metrics, eval_fold_metrics, fold_embeddings, fold_logits, fold_targets
+        embeddings_array = np.zeros((strat_array.shape[0], eval_embeddings.shape[1]))
+        logits_array = np.zeros((strat_array.shape[0], eval_logits.shape[1]))
+        targets_array = np.zeros((strat_array.shape[0], 1))
+
+        for i in range(self.n_folds):
+            embeddings_array[eval_fold_indexes[i]] = fold_embeddings[i]
+            logits_array[eval_fold_indexes[i]] = fold_logits[i]
+            targets_array[eval_fold_indexes[i]] = fold_targets[i]
+
+        embeddings_df = pd.DataFrame(embeddings_array, columns=[f"embedding_feature_{i}" for i in range(eval_embeddings.shape[1])])
+        logits_df = pd.DataFrame(logits_array, columns=[f"target_feature_{i}" for i in range(eval_logits.shape[1])])
+        embeddings_df["user_id"] = user_ids
+        logits_df["user_id"] = user_ids
+        embeddings_df[target_name] = targets_array
+        logits_df[target_name] = targets_array
+
+        return train_fold_metrics, eval_fold_metrics, embeddings_df, logits_df
 
     def transform(self,
                   dataset,
+                  user_ids: np.ndarray,
                   batch_size: int = 32,
                   device: str = "cuda"
                   ) -> tuple:
@@ -166,7 +193,19 @@ class CVTrainer:
             fold_embeddings.append(embeddings)
             fold_logits.append(logits)
 
-        return sum(fold_embeddings) / self.n_folds, sum(fold_logits) / self.n_folds
+        embeddings_array = sum(fold_embeddings) / self.n_folds
+        logits_array = sum(fold_logits) / self.n_folds
+        if logits_array.shape[1] <= 2:
+            logits_array = torch.sigmoid(logits_array)
+        else:
+            logits_array = torch.softmax(logits_array, dim=1)
+
+        embeddings_df = pd.DataFrame(embeddings_array, columns=[f"embedding_feature_{i}" for i in range(embeddings_array.shape[1])])
+        logits_df = pd.DataFrame(logits_array, columns=[f"target_feature_{i}" for i in range(logits_array.shape[1])])
+        embeddings_df["user_id"] = user_ids
+        logits_df["user_id"] = user_ids
+
+        return embeddings_df, logits_df
 
     def get_models(self) -> list:
         return self.fold_models

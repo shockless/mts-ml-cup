@@ -54,19 +54,19 @@ class TargetDataset(Dataset):
         self.cont_sequences = []
         self.targets = []
 
-        agg_col = self.df[self.agg_column].to_numpy()
+        self.agg_col = self.df[self.agg_column].to_numpy()
         target = self.df[self.target_column].to_numpy()
 
         curr_ind = 0
-        curr_val = agg_col[0]
-        for i in tqdm(range(agg_col.shape[0])):
-            if agg_col[i] != curr_val:
+        curr_val = self.agg_col[0]
+        for i in tqdm(range(self.agg_col.shape[0])):
+            if self.agg_col[i] != curr_val:
                 self.cat_sequences.append(self.df.iloc[curr_ind:i][self.cat_features].to_numpy().astype("int32"))
                 self.cont_sequences.append(self.df.iloc[curr_ind:i][self.cont_features].to_numpy().astype("float32"))
                 self.targets.append(target[curr_ind:i][0])
 
                 curr_ind = i
-                curr_val = agg_col[i]
+                curr_val = self.agg_col[i]
 
         del self.df
         gc.collect()
@@ -116,6 +116,9 @@ class TargetDataset(Dataset):
             raise ValueError("Expected padding_side to be either 'right' of 'left'")
 
         return sequence, attention_mask
+
+    def get_agg_col(self) -> np.ndarray:
+        return self.agg_col
 
 
 class TestDataset(Dataset):
@@ -160,18 +163,19 @@ class TestDataset(Dataset):
 
         self.cat_sequences = []
         self.cont_sequences = []
+        self.agg_column_array = self.df[self.agg_column].to_numpy()
 
-        agg_col = self.df[self.agg_column].to_numpy()
+        self.agg_col = self.df[self.agg_column].to_numpy()
 
         curr_ind = 0
-        curr_val = agg_col[0]
-        for i in tqdm(range(agg_col.shape[0])):
-            if agg_col[i] != curr_val:
+        curr_val = self.agg_col[0]
+        for i in tqdm(range(self.agg_col.shape[0])):
+            if self.agg_col[i] != curr_val:
                 self.cat_sequences.append(self.df.iloc[curr_ind:i][self.cat_features].to_numpy().astype("int32"))
                 self.cont_sequences.append(self.df.iloc[curr_ind:i][self.cont_features].to_numpy().astype("float32"))
 
                 curr_ind = i
-                curr_val = agg_col[i]
+                curr_val = self.agg_col[i]
 
         del self.df
         gc.collect()
@@ -221,3 +225,6 @@ class TestDataset(Dataset):
             raise ValueError("Expected padding_side to be either 'right' of 'left'")
 
         return sequence, attention_mask
+
+    def get_agg_col(self) -> np.ndarray:
+        return self.agg_col
