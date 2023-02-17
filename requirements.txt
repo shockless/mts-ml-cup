@@ -31,3 +31,5 @@ joblib
 geopy
 scipy
 dask
+
+geopandas
