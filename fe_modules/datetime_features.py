@@ -2,6 +2,7 @@ import pandas as pd
 from pandas import Timedelta
 
 from modules.memory_utils import pandas_reduce_mem_usage
+from fe_modules.aggregates import get_agg_mean, get_agg_min, get_agg_max
 
 
 def get_year(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
@@ -57,13 +58,24 @@ def get_holiday_name(df: pd.DataFrame, date_col: str = "date", alias: str = "hol
     return df
 
 
-def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", alias: str = "hour") -> pd.DataFrame:
-    mapper = {
-        "morning": Timedelta(hours=9),
-        "day": Timedelta(hours=15),
-        "evening": Timedelta(hours=21),
-        "night": Timedelta(hours=3)
-    }
+def part_of_day_to_hour(df: pd.DataFrame, col: str = "part_of_day", return_dtype: str = "datetime",
+                        alias: str = "hour") -> pd.DataFrame:
+    if return_dtype == "datetime":
+        mapper = {
+            "morning": Timedelta(hours=9),
+            "day": Timedelta(hours=15),
+            "evening": Timedelta(hours=21),
+            "night": Timedelta(hours=3),
+        }
+    elif return_dtype == "int":
+        mapper = {
+            "morning": 9,
+            "day": 15,
+            "evening": 21,
+            "night": 3,
+        }
+    else:
+        raise Exception("'return_dtype' can take values only 'int' or 'datetime'")
     df[alias] = df[col].map(mapper)
     return df
 
@@ -86,4 +98,18 @@ def get_relative_time(df: pd.DataFrame,
     df[alias] = (df["last_timestamp"] - df[date_col]) / scaler
 
     df = pandas_reduce_mem_usage(df.drop(["last_timestamp"], axis=1), columns=[alias])
+    return df
+
+
+def mean_first_visit(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
+    df = get_agg_min(df, agg_col=["user_id", date_col], target_col="hour_int", alias="first_visit",)
+    df = get_agg_mean(df, agg_col="user_id", target_col="first_visit", alias="mean_fv")
+    df = df.drop(columns=["first_visit"])
+    return df
+
+
+def mean_last_visit(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
+    df = get_agg_max(df, agg_col=["user_id", date_col], target_col="hour_int", alias="last_visit",)
+    df = get_agg_mean(df, agg_col="user_id", target_col="last_visit", alias="mean_lv")
+    df = df.drop(columns=["last_visit"])
     return df
