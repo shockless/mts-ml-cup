@@ -96,6 +96,59 @@ def get_agg_amount_of_travel(df: pd.DataFrame,
     return df
 
 
+def haversine_np(lon1, lat1, lon2, lat2):
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
+
+    c = 2 * np.arcsin(np.sqrt(a))
+    km = 6367 * c
+    return km
+
+
+def get_dist(points):
+    points = np.stack(points.to_numpy())
+    point_shifted = np.roll(points, 1, axis=0)
+    point_shifted[0] = np.array([np.nan, np.nan, np.nan])
+    temp = (point_shifted[:, 2] != points[:, 2])
+    points = np.delete(points[temp], 2, 1).astype(np.float32)[1:]
+    point_shifted = np.delete(point_shifted[temp], 2, 1).astype(np.float32)[1:]
+    return haversine_np(points[:, 0],
+                        points[:, 1],
+                        point_shifted[:, 0],
+                        point_shifted[:, 1]).mean()
+
+
+def get_agg_distance_of_travel(df: pd.DataFrame,
+                               agg_col: str = "user_id",
+                               target_col_lat: str = 'geo_lat',
+                               target_col_lon: str = 'geo_lon',
+                               timestamp_col: str = 'timestamp',
+                               city_name_col: str = 'city_name',
+                               alias: str = None,
+                               sort: bool = False) -> pd.DataFrame:
+    if alias:
+        col_name = alias
+    else:
+        col_name = f'{agg_col}_mean_travel_distance'
+    df['lat_lon'] = df[[target_col_lat, target_col_lon, city_name_col]].progress_apply(lambda r: tuple(r),
+                                                                                       axis=1).apply(np.array)
+
+    df = df.merge(df.sort_values(timestamp_col).groupby(agg_col)['lat_lon']
+                  .agg(geometry=get_dist).fillna(0).astype(np.float32)
+                  .rename(columns={'geometry': col_name}), how='left', on=agg_col)
+
+    del df['lat_lon']
+
+    if sort:
+        return df.sort_values(by=agg_col)
+
+    return df
+
+
 class MapGridTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, loc, col, row, col_names=COL_NAMES):
         self.location_mh = loc
