@@ -3,7 +3,7 @@ import category_encoders as ce
 import joblib
 
 
-class TargetEncoderWarpper:
+class TargetEncoderWrapper:
     def __init__(self):
         self.tenc = ce.TargetEncoder()
 
