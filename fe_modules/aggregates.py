@@ -236,7 +236,7 @@ def get_ratio_part_of_day(df: pd.DataFrame,
         set_ = {"morning", "day", "evening", "night"}
         for i in set_ - set(temp.index):
             temp[i] = 0
-        n = temp["morning"] + temp["day"] + temp["evening"] + temp["night"]
+        n = s.shape[0]
         return np.array([temp["morning"] / n, temp["day"] / n, temp["evening"] / n, temp["night"] / n])
 
     agg = df.groupby(agg_col)["part_of_day"].agg(ratio).to_frame()
