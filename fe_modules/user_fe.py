@@ -3,6 +3,8 @@ from typing import Union
 import pandas as pd
 import numpy as np
 
+from scipy import stats
+
 from modules.memory_utils import pandas_reduce_mem_usage
 
 from fe_modules.preprocessing import clean_os_type
@@ -11,56 +13,44 @@ from fe_modules.preprocessing import clean_os_type
 class UserFE:
     def __init__(self, df: pd.DataFrame):
         self.df = df.drop_duplicates("user_id").reset_index()
-        self.df = self.df.drop(["index", "region_name", "city_name", "url_host", "price", "request_cnt"], axis=1)
+        self.df = self.df.drop(["index", "region_name", "city_name", "url_host", "price", "request_cnt",
+                                "date", "part_of_day"],
+                               axis=1)
         self.df = clean_os_type(self.df)
         self.pandas_reduce_mem_usage()
 
-    def get_agg_mean(self,
-                     df: pd.DataFrame,
-                     agg_col: Union[str, list] = "user_id",
-                     target_col: str = None,
-                     alias: str = None):
+    def get_agg(self,
+                df: pd.DataFrame,
+                agg_col: Union[str, list] = "user_id",
+                target_col: str = None,
+                agg_name: str = None,
+                alias: str = None):
+
         if alias:
             col_name = alias
         else:
-            col_name = f'{agg_col}_group_mean'
+            col_name = f'{agg_col}_group_{agg_name}'
 
         if isinstance(agg_col, str):
             agg_col = [agg_col]
 
-        agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(columns={target_col: col_name}).reset_index()
-        self.df = self.df.merge(agg, how="left", on=agg_col)
-
-    def get_agg_count(self,
-                      df: pd.DataFrame,
-                      agg_col: Union[str, list] = "user_id",
-                      target_col: str = None,
-                      alias: str = None):
-        if alias:
-            col_name = alias
+        if agg_name == "mean":
+            agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(columns={target_col: col_name}).reset_index()
+        elif agg_name == "count":
+            agg = df.groupby(agg_col)[target_col].count().to_frame().rename(
+                columns={target_col: col_name}).reset_index()
+        elif agg_name == "sum":
+            agg = df.groupby(agg_col)[target_col].sum().to_frame().rename(columns={target_col: col_name}).reset_index()
+        elif agg_name == "max":
+            agg = df.groupby(agg_col)[target_col].max().to_frame().rename(columns={target_col: col_name}).reset_index()
+        elif agg_name == "min":
+            agg = df.groupby(agg_col)[target_col].min().to_frame().rename(columns={target_col: col_name}).reset_index()
+        elif agg_name == "nunique":
+            agg = df.groupby(agg_col)[target_col].nunique().to_frame().rename(
+                columns={target_col: col_name}).reset_index()
         else:
-            col_name = f'{agg_col}_group_count'
+            raise Exception(f"'agg_name' can't take value '{agg_name}'")
 
-        if isinstance(agg_col, str):
-            agg_col = [agg_col]
-
-        agg = df.groupby(agg_col)[target_col].count().to_frame().rename(columns={target_col: col_name}).reset_index()
-        self.df = self.df.merge(agg, how="left", on=agg_col)
-
-    def get_agg_sum(self,
-                    df: pd.DataFrame,
-                    agg_col: Union[str, list] = "user_id",
-                    target_col: str = None,
-                    alias: str = None):
-        if alias:
-            col_name = alias
-        else:
-            col_name = f'{agg_col}_group_sum'
-
-        if isinstance(agg_col, str):
-            agg_col = [agg_col]
-
-        agg = df.groupby(agg_col)[target_col].sum().to_frame().rename(columns={target_col: col_name}).reset_index()
         self.df = self.df.merge(agg, how="left", on=agg_col)
 
     def get_top_n_mode(self,
@@ -72,7 +62,7 @@ class UserFE:
         if alias:
             col_name = alias
         else:
-            col_name = f'{agg_col}_mode'
+            col_name = f'{target_col}_mode'
 
         if isinstance(agg_col, str):
             agg_col = [agg_col]
@@ -110,6 +100,32 @@ class UserFE:
                            columns=agg_col + ["morning", "day", "evening", "night"])
 
         self.df = self.df.merge(agg, how="left", on=agg_col)
+
+    def get_timespan(self,
+                     df: pd.DataFrame,
+                     agg_col: Union[str, list] = "user_id",
+                     date_col: str = "datetime",
+                     alias: str = None,
+                     scaler: int = 1e11):
+
+        if alias is None:
+            alias = "timespan"
+
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        self.get_agg(df, agg_col=agg_col, target_col=date_col, agg_name="min", alias="date_min")
+        self.get_agg(df, agg_col=agg_col, target_col=date_col, agg_name="max", alias="date_max")
+
+        self.df[alias] = (pd.DatetimeIndex(self.df["date_max"]).astype(int) - pd.DatetimeIndex(
+            self.df["date_min"]).astype(int)) / scaler
+        self.df.drop(["date_max", "date_min"], axis=1)
+
+    def get_ratio_request_timespan(self, alias: str = None):
+        if alias is None:
+            alias = "ratio_request_timespan"
+        self.df[alias] = self.df["request_sum"] / self.df["timespan"]
+        self.df.loc[self.df["timespan"] == 0, alias] = 0
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
