@@ -90,5 +90,26 @@ class UserFE:
 
         self.df = self.df.merge(agg, how="left", on=agg_col)
 
+    def get_ratio_part_of_day(self,
+                              df: pd.DataFrame,
+                              agg_col: Union[str, list] = "user_id"):
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        def ratio(s):
+            temp = s.value_counts()
+            set_ = {"morning", "day", "evening", "night"}
+            for i in set_ - set(temp.index):
+                temp[i] = 0
+            n = temp["morning"] + temp["day"] + temp["evening"] + temp["night"]
+            return np.array([temp["morning"] / n, temp["day"] / n, temp["evening"] / n, temp["night"] / n])
+
+        agg = df.groupby(agg_col)["part_of_day"].agg(ratio).to_frame()
+        agg = pd.DataFrame(np.concatenate((np.expand_dims(agg.index.to_numpy().astype(object), axis=1),
+                                           np.stack(agg["part_of_day"].values)), axis=1),
+                           columns=agg_col + ["morning", "day", "evening", "night"])
+
+        self.df = self.df.merge(agg, how="left", on=agg_col)
+
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
