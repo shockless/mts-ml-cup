@@ -12,7 +12,7 @@ from transformers import get_constant_schedule
 from seq2seq_modules.utils import save_model, fix_random_state
 
 
-def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device, metric_func):
+def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device, metric_func, pass_logits: bool = True):
     model.train()
 
     dl_size = len(data_loader)
@@ -37,7 +37,11 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
         logits.append(batch_logits.detach().cpu())
         targets.append(batch_target.cpu())
 
-        loss = loss_function(batch_logits.double(), batch_target)
+        if pass_logits:
+            loss = loss_function(batch_logits.double(), batch_target)
+        else:
+            loss = loss_function(batch_embeddings.double(), batch_target)
+
         total_train_loss += loss.item()
 
         loss.backward()
@@ -55,7 +59,7 @@ def train_epoch(model, data_loader, loss_function, optimizer, scheduler, device,
     return metrics, embeddings, logits, targets
 
 
-def eval_epoch(model, data_loader, loss_function, device, metric_func):
+def eval_epoch(model, data_loader, loss_function, device, metric_func, pass_logits: bool = True):
     model.eval()
 
     dl_size = len(data_loader)
@@ -80,7 +84,11 @@ def eval_epoch(model, data_loader, loss_function, device, metric_func):
             logits.append(batch_logits.detach().cpu())
             targets.append(batch_target.cpu())
 
-        loss = loss_function(batch_logits.double(), batch_target)
+        if pass_logits:
+            loss = loss_function(batch_logits.double(), batch_target)
+        else:
+            loss = loss_function(batch_embeddings.double(), batch_target)
+
         total_train_loss += loss.item()
 
     embeddings = torch.cat(embeddings, dim=0)
@@ -212,7 +220,8 @@ def single_model_training(
         metric_func,
         optimizer,
         get_scheduler,
-        save_folder,
+        # save_folder,
+        pretraining: bool = True,
         device=torch.device("cuda"),
         random_state: int = 69,
         shuffle: bool = True,
@@ -246,7 +255,7 @@ def single_model_training(
         num_training_steps=total_steps
     )
 
-    os.mkdir(save_folder)
+    # os.mkdir(save_folder)
 
     for epoch_i in range(0, epochs):
         if epoch_i >= start_epoch:
@@ -258,9 +267,10 @@ def single_model_training(
                 scheduler,
                 device,
                 metric_func,
+                pass_logits=True if pretraining else False
             )
 
-            save_model(model, save_folder, f"epoch_{epoch_i}")
+            # save_model(model, save_folder, f"epoch_{epoch_i}")
 
             print("EPOCH", epoch_i)
             print(train_metrics)
@@ -271,7 +281,8 @@ def predict(model, dataset, device: str = 'cuda', batch_size: int = 64) -> torch
 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
 
-    outputs = []
+    logits = []
+    embeddings = []
 
     for batch in tqdm(dataloader):
         cat_features, cont_features, attention_mask = batch
@@ -282,12 +293,14 @@ def predict(model, dataset, device: str = 'cuda', batch_size: int = 64) -> torch
         )
 
         with torch.no_grad():
-            embeddings, logits = model(cat_features, cont_features, attention_mask)
-            outputs.append(logits.detach().cpu())
+            batch_embeddings, batch_logits = model(cat_features, cont_features, attention_mask)
+            logits.append(batch_logits.detach().cpu())
+            embeddings.append(batch_embeddings.detach().cpu())
 
-    outputs = torch.cat(outputs, dim=0)
+    logits = torch.cat(logits, dim=0)
+    embeddings = torch.cat(embeddings, dim=0)
 
-    return outputs
+    return embeddings, logits
 
 
 def shuffle_eval_epoch(model, data_loader, loss_function, device, metric_func):
@@ -323,75 +336,3 @@ def shuffle_eval_epoch(model, data_loader, loss_function, device, metric_func):
     metrics["loss"] = total_train_loss / dl_size
 
     return metrics
-
-
-# def cross_validation_shuffle_importance(
-#         project_name,
-#         models: list,
-#         dataset,
-#         loss_function,
-#         metric_func,
-#         optimizer,
-#         get_scheduler,
-#         strat_array=None,
-#         device=torch.device("cuda"),
-#         random_state: int = 69,
-#         shuffle: bool = True,
-#         dataloader_shuffle=False,
-#         n_folds: int = 4,
-#         epochs: int = 5,
-#         lr: float = 1e-6,
-#         weight_decay: float = 1e-2,
-#         num_warmup_steps: int = 0,
-#         start_fold: int = 0,
-#         batch_size: int = 32,
-# ):
-#     loss_function.to(device)
-#
-#     if type(strat_array) != type(None):
-#         kfold = StratifiedKFold(n_folds, shuffle=shuffle, random_state=random_state)
-#         split = kfold.split(dataset, strat_array)
-#     else:
-#         kfold = KFold(n_folds, shuffle=shuffle, random_state=random_state)
-#         split = kfold.split(dataset)
-#
-#     fold_eval_scores = []
-#
-#     os.mkdir(project_name)
-#
-#     for fold, (train_ids, eval_ids) in enumerate(split):
-#         if fold >= start_fold:
-#             print(f"FOLD {fold}")
-#             print("--------------------------------")
-#
-#             fold_model = deepcopy(models[fold])
-#             fold_model.to(device)
-#
-#             fix_random_state(random_state)
-#             eval_subsampler = torch.utils.data.Subset(dataset, eval_ids)
-#             eval_loader = torch.utils.data.DataLoader(
-#                 eval_subsampler, batch_size=batch_size, shuffle=dataloader_shuffle
-#             )
-#
-#             eval_metrics = eval_epoch(
-#                 fold_model,
-#                 eval_loader,
-#                 loss_function,
-#                 device,
-#                 metric_func
-#             )
-#             eval_metrics.append(eval_metrics)
-#
-#             shuffle_scores = []
-#
-#             for i in range(num_features):
-#                 eval_metrics = shuffle_eval_epoch(
-#                     fold_model,
-#                     eval_loader,
-#                     loss_function,
-#                     device,
-#                     metric_func,
-#                     shuffle_feature_ind
-#                 )
-#
-#     return fold_train_scores, fold_eval_scores

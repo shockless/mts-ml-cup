@@ -33,8 +33,8 @@ class CVTrainer:
                       metric_func,
                       optimizer,
                       get_scheduler,
-                      target_name: str = None,
-                      user_ids: np.ndarray = None,
+                      target_name,
+                      user_ids,
                       strat_array: torch.tensor = None,
                       shuffle: bool = True,
                       epochs: int = 5,
@@ -156,12 +156,12 @@ class CVTrainer:
 
         embeddings_array = np.zeros((strat_array.shape[0], eval_embeddings.shape[1]))
         logits_array = np.zeros((strat_array.shape[0], eval_logits.shape[1]))
-        targets_array = np.zeros((strat_array.shape[0], 1))
+        targets_array = np.zeros((strat_array.shape[0]))
 
         for i in range(self.n_folds):
             embeddings_array[eval_fold_indexes[i]] = fold_embeddings[i]
             logits_array[eval_fold_indexes[i]] = fold_logits[i]
-            targets_array[eval_fold_indexes[i]] = fold_targets[i]
+            targets_array[eval_fold_indexes[i]] = fold_targets[i].flatten()
 
         embeddings_df = pd.DataFrame(embeddings_array, columns=[f"embedding_feature_{i}" for i in range(eval_embeddings.shape[1])])
         logits_df = pd.DataFrame(logits_array, columns=[f"target_feature_{i}" for i in range(eval_logits.shape[1])])
