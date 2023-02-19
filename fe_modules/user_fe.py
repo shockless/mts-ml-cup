@@ -101,6 +101,11 @@ class UserFE:
 
         self.df = self.df.merge(agg, how="left", on=agg_col)
 
+        self.df["morning"] = self.df["morning"].astype(np.float64)
+        self.df["day"] = self.df["day"].astype(np.float64)
+        self.df["evening"] = self.df["evening"].astype(np.float64)
+        self.df["night"] = self.df["night"].astype(np.float64)
+
     def get_timespan(self,
                      df: pd.DataFrame,
                      agg_col: Union[str, list] = "user_id",
@@ -119,7 +124,7 @@ class UserFE:
 
         self.df[alias] = (pd.DatetimeIndex(self.df["date_max"]).astype(int) - pd.DatetimeIndex(
             self.df["date_min"]).astype(int)) / scaler
-        self.df.drop(["date_max", "date_min"], axis=1)
+        self.df = self.df.drop(["date_max", "date_min"], axis=1)
 
     def get_ratio_request_timespan(self, alias: str = None):
         if alias is None:
