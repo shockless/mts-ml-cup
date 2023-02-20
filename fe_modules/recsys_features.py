@@ -30,6 +30,7 @@ class ALSWrapper:
         u_factors = self.als.user_factors
         inv_usr_map = {v: k for k, v in self.usr_dict.items()}
         usr_emb = pd.DataFrame(u_factors)
+        usr_emb = usr_emb.rename(columns={column: "emb_" + str(column) for column in usr_emb.columns})
         usr_emb['user_id'] = usr_emb.index.map(inv_usr_map)
         return usr_emb
 
