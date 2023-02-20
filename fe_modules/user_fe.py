@@ -134,3 +134,9 @@ class UserFE:
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
+
+    def save(self, path: str):
+        self.df.to_parquet(path, compression='gzip')
+
+    def load(self, path: str):
+        self.df = pandas_reduce_mem_usage(pd.read_parquet(path))
