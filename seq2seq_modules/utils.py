@@ -18,16 +18,16 @@ def generate_square_subsequent_mask(sz):
 
 
 def age_bucket(x):
-    return bisect.bisect_left([18, 25, 35, 45, 55, 65], x)
+    return bisect.bisect_left([25, 35, 45, 55, 65], x)
 
 
 def torch_age_bucket(x):
-    boundaries = torch.tensor([18, 25, 35, 45, 55, 65])
+    boundaries = torch.tensor([25, 35, 45, 55, 65])
     return torch.bucketize(x, boundaries, right=False)
 
 
 def numpy_age_bucket(x):
-    boundaries = np.array([18, 25, 35, 45, 55, 65])
+    boundaries = np.array([25, 35, 45, 55, 65])
     return np.digitize(x, boundaries, right=True)
 
 
