@@ -11,7 +11,10 @@ from fe_modules.preprocessing import clean_os_type
 
 
 class UserFE:
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self):
+        self.df = None
+
+    def load_df(self, df: pd.DataFrame):
         self.df = df.drop_duplicates("user_id").reset_index()
         self.df = self.df.drop(["index", "region_name", "city_name", "url_host", "price", "request_cnt",
                                 "date", "part_of_day"],
