@@ -270,6 +270,7 @@ class CoLESDataset(Dataset):
     def __getitem__(self, idx: int) -> tuple:
         cat_features = self.cat_sequences[idx]
         cont_features = self.cont_sequences[idx]
+        target = self.targets[idx]
 
         cat_features, attention_mask = self.__pad_and_truncate(cat_features)
         cont_features, attention_mask = self.__pad_and_truncate(cont_features)
@@ -278,7 +279,7 @@ class CoLESDataset(Dataset):
         cont_features = torch.tensor(cont_features).float()
         attention_mask = torch.tensor(attention_mask).bool()
 
-        return cat_features, cont_features, attention_mask
+        return cat_features, cont_features, attention_mask, target
 
     def __get_sequences(self):
         self.df = self.df.sort_values(
@@ -288,24 +289,28 @@ class CoLESDataset(Dataset):
         self.targets = []
         self.cat_sequences = []
         self.cont_sequences = []
-        self.agg_column_array = self.df[self.agg_column].to_numpy()
+        self.agg_col = self.df[self.agg_column].to_numpy()
 
         target_id = 0
         curr_ind = 0
         curr_val = self.agg_col[0]
+
         for i in tqdm(range(self.agg_col.shape[0])):
             if self.agg_col[i] != curr_val:
-                self.cat_sequences.extend(
-                    np.split(self.df.iloc[curr_ind:i][self.cat_features].to_numpy().astype("int32"),
-                             range(self.num_splits, i - curr_ind, self.num_splits)))
-                self.cont_sequences.extend(
-                    np.split(self.df.iloc[curr_ind:i][self.cont_features].to_numpy().astype("float32"),
-                             range(self.num_splits, i - curr_ind, self.num_splits)))
-
                 if i - curr_ind >= self.num_splits:
-                    self.targets.extend([target_id] * self.num_splits)
-                else:
-                    self.targets.extend([i - curr_ind] * self.num_splits)
+                    self.cat_sequences.extend(
+                        np.split(self.df.iloc[curr_ind:i][self.cat_features].to_numpy().astype("int32"),
+                                 range(0, i - curr_ind, self.num_splits)
+                                 )
+                    )
+
+                    self.cont_sequences.extend(
+                        np.split(self.df.iloc[curr_ind:i][self.cont_features].to_numpy().astype("float32"),
+                                 range(0, i - curr_ind, self.num_splits)
+                                 )
+                    )
+
+                    self.targets.extend([target_id] * (i - curr_ind))
 
                 target_id += 1
                 curr_ind = i
