@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
-
+import re
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -25,6 +25,32 @@ def get_site_name(row):
     else:
         site = row
     return site
+
+
+def get_encoding(soup):
+    encoding = None
+    if soup:
+        for meta_tag in soup.find_all("meta"):
+            encoding = meta_tag.get('charset')
+            if encoding: break
+            else:
+                encoding = meta_tag.get('content-type')
+                if encoding: break
+                else:
+                    content = meta_tag.get('content')
+                    if content:
+                        match = re.search('charset=(.*)', content)
+                        if match:
+                           encoding = match.group(1)
+                           break
+                        else:
+                            match = re.search('CHARSET=(.*)', content)
+                            if match:
+                                encoding = match.group(1)
+                                break
+    if encoding:
+        # cast to str if type(encoding) == bs4.element.ContentMetaAttributeValue
+        return str(encoding).lower()
 
 
 def get_meta(soup):
@@ -67,25 +93,13 @@ def get_meta(soup):
 
 def get_content(res):
     try:
-        try:
-            enc = res.encoding
-            if enc:
-                if enc == 'Win1251' or enc == 'win-1251':
-                    enc = 'cp1251'
-                s = res.content.decode(enc, errors='replace').encode('utf-8', errors='replace')
-            else:
-                s = res.content.decode('utf-8', errors='replace').encode('utf-8', errors='replace')
-        except UnicodeDecodeError as e:
-            print(enc)
-            try:
-                enc = res.encoding
-                if enc:
-                    s = res.text.decode(enc, errors='replace')
-                else:
-                    s = res.text.decode('utf-8', errors='replace')
-            except:
-                raise e
+        soup = BeautifulSoup(res.text, "html.parser")
+        enc = get_encoding(soup)
+        print(enc)
+        if enc is None:
+            enc = 'utf-8'
 
+        s = res.content.decode(enc, errors='replace')
         soup = BeautifulSoup(s, "html.parser")
         metad = list(get_meta(soup))
         for data in soup(['style', 'script', 'img']):
@@ -96,7 +110,7 @@ def get_content(res):
         print(e)
         text = "NULL"
         metad = ['NULL', 'NULL', 'NULL', 'NULL', 'NULL']
-    except:
+    except Exception as e:
         raise e
     return [text, metad]
 
@@ -206,7 +220,7 @@ class parser:
 
     def parse(self, sites_path: str, out_path: str, n_partitions: int, timeout: int, max_retries: int = 3, start=None,
               end=None):
-        df = pd.read_csv(sites_path)
+        df = pd.read_csv(sites_path, index_col=0)
         if not end:
             end = df.shape[0] - 1
         if not start:
