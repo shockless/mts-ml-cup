@@ -29,25 +29,38 @@ def get_site_name(row):
 
 def get_encoding(soup):
     encoding = None
-    if soup:
-        for meta_tag in soup.find_all("meta"):
-            encoding = meta_tag.get('charset')
-            if encoding: break
-            else:
-                encoding = meta_tag.get('content-type')
+    try:
+        if soup:
+            for meta_tag in soup.find_all("meta"):
+                encoding = meta_tag.get('charset')
                 if encoding: break
                 else:
-                    content = meta_tag.get('content')
-                    if content:
-                        match = re.search('charset=(.*)', content)
-                        if match:
-                           encoding = match.group(1)
-                           break
-                        else:
-                            match = re.search('CHARSET=(.*)', content)
+                    encoding = meta_tag.get('content-type')
+                    if encoding: break
+                    else:
+                        content = meta_tag.get('content')
+                        if content:
+                            match = re.search('charset=(.*)', content)
                             if match:
-                                encoding = match.group(1)
-                                break
+                               encoding = match.group(1)
+                               break
+                            else:
+                                match = re.search('CHARSET=(.*)', content)
+                                if match:
+                                    encoding = match.group(1)
+                                    break
+                                else:
+                                    match = re.search('Charset=(.*)', content)
+                                    if match:
+                                        encoding = match.group(1)
+                                        break
+                                    else:
+                                        match = re.search('CharSet=(.*)', content)
+                                        if match:
+                                            encoding = match.group(1)
+                                            break
+    except:
+        encoding='utf-8'
     if encoding:
         # cast to str if type(encoding) == bs4.element.ContentMetaAttributeValue
         return str(encoding).lower()
@@ -95,11 +108,20 @@ def get_content(res):
     try:
         soup = BeautifulSoup(res.text, "html.parser")
         enc = get_encoding(soup)
-        print(enc)
         if enc is None:
             enc = 'utf-8'
+        if 'utf-8' in enc:
+            enc = 'utf-8'
+        if 'cp-1251' in enc:
+            enc = 'windows-1251'
+        if 'ru-ru' in enc:
+            enc = 'utf-8'
+        try:
+            s = res.content.decode(enc, errors='replace')
+        except LookupError:
+            enc = 'utf-8'
+            s = res.content.decode(enc, errors='replace')
 
-        s = res.content.decode(enc, errors='replace')
         soup = BeautifulSoup(s, "html.parser")
         metad = list(get_meta(soup))
         for data in soup(['style', 'script', 'img']):
@@ -147,6 +169,7 @@ def get_headers():
 
 def get_content_url(url, proxy=None, timeout=5, verify=False, headers={}):
     s = get_session(proxy)
+
     res = s.get(url, timeout=timeout, verify=verify, headers=headers)
     res = get_content(res)
     try:
@@ -160,11 +183,16 @@ def get_content_url(url, proxy=None, timeout=5, verify=False, headers={}):
 class parser:
 
     def __init__(self):
-        self.proxy = random.choice(get_free_proxies())
+        pass
+        #self.proxy = random.choice(get_free_proxies())
 
     def parse_bs(self, url: str, text, metad, timeout, max_retries):
         if len(str(url).split('.')) > 1:
             try:
+                if 'turbopages' in url:
+                    url = url.replace('.turbopages.org', '')
+                    url = url.replace('-', '.')
+                    url = url.replace('..', '-')
                 text, metad = get_content_url(url, None, timeout, headers=get_headers())
 
                 if '403 Forbidden' in text or text == '' or metad[0] == '403 Forbidden':
@@ -187,7 +215,8 @@ class parser:
                         isinstance(e, requests.exceptions.TooManyRedirects) or \
                         isinstance(e, requests.exceptions.ConnectTimeout) or \
                         isinstance(e, requests.exceptions.ConnectionError) or \
-                        isinstance(e, requests.exceptions.ContentDecodingError):
+                        isinstance(e, requests.exceptions.ContentDecodingError) or \
+                        isinstance(e, requests.exceptions.InvalidSchema):
                     try:
 
                         text, metad = get_content_url(url, None, timeout, headers=get_headers())
