@@ -3,8 +3,6 @@ from typing import Union
 import pandas as pd
 import numpy as np
 
-from scipy import stats
-
 from modules.memory_utils import pandas_reduce_mem_usage
 
 from fe_modules.preprocessing import clean_os_type
@@ -134,6 +132,35 @@ class UserFE:
             alias = "ratio_request_timespan"
         self.df[alias] = self.df["request_sum"] / self.df["timespan"]
         self.df.loc[self.df["timespan"] == 0, alias] = 0
+
+    def get_ratio(self,
+                  df: pd.DataFrame,
+                  agg_col: Union[str, list] = "user_id",
+                  ratio_col: str = "url_host",
+                  n: int = 3):
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        def ratio(s):
+            dtemp = s.value_counts()
+
+            temp = dtemp[:n].index
+            temp = np.append(temp, np.array(["<blank>"] * (n - len(temp))))
+
+            dtemp["<blank>"] = 0
+
+            aggregates = np.zeros(n)
+            for i in range(len(temp)):
+                aggregates[i] = dtemp[temp[i]] / s.shape[0]
+
+            return aggregates
+
+        agg = df.groupby(agg_col)[ratio_col].agg(ratio).to_frame()
+        agg = pd.DataFrame(np.concatenate((np.expand_dims(agg.index.to_numpy().astype(object), axis=1),
+                                           np.stack(agg[ratio_col].values)), axis=1),
+                           columns=agg_col + [f"{ratio_col}_ratio_{i}" for i in range(n)])
+
+        self.df = self.df.merge(agg, how="left", on=agg_col)
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
