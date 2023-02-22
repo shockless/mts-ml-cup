@@ -162,6 +162,25 @@ class UserFE:
 
         self.df = self.df.merge(agg, how="left", on=agg_col)
 
+    def get_first_visit_sec(self,
+                            df: pd.DataFrame,
+                            agg_col: Union[str, list] = "user_id",
+                            date_col: str = "datetime",
+                            alias: str = None,
+                            scaler: int = 1e11):
+
+        if alias is None:
+            alias = "first_visit_sec"
+
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        self.get_agg(df, agg_col=agg_col, target_col=date_col, agg_name="min", alias="date_min")
+
+        self.df[alias] = pd.DatetimeIndex(self.df["date_min"]).astype(int) / scaler
+
+        self.df = self.df.drop(["date_min"], axis=1)
+
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
 
