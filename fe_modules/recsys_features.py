@@ -13,17 +13,18 @@ class ALSWrapper:
         self.usr_dict = None
         self.url_dict = None
 
-    def fit(self, df: pd.DataFrame, target: str = 'request_cnt'):
-        data_agg = df.groupby(['user_id', 'url_host'])[['user_id', 'url_host', target]].agg(
-            {target: 'sum'}).reset_index().rename(columns={target: target + '_sum'})
-        url_set = set(df['url_host'])
+    def fit(self, df: pd.DataFrame, rows: str = "user_id", columns: str = "url_host", target: str = 'request_cnt',
+            agg_fn: str = "sum"):
+        data_agg = df.groupby([rows, columns])[[rows, columns, target]].agg(
+            {target: agg_fn}).reset_index().rename(columns={target: target + '_' + agg_fn})
+        url_set = set(df[columns])
         self.url_dict = {url: idurl for url, idurl in zip(url_set, range(len(url_set)))}
-        usr_set = set(df['user_id'])
+        usr_set = set(df[rows])
         self.usr_dict = {usr: user_id for usr, user_id in zip(usr_set, range(len(usr_set)))}
-        values = np.array(data_agg[target + '_sum'])
-        rows = np.array(data_agg['user_id'].map(self.usr_dict))
-        cols = np.array(data_agg['url_host'].map(self.url_dict))
-        mat = scipy.sparse.coo_matrix((values, (rows, cols)), shape=(rows.max() + 1, cols.max() + 1))
+        values = np.array(data_agg[target + '_' + agg_fn])
+        row = np.array(data_agg[rows].map(self.usr_dict))
+        cols = np.array(data_agg[columns].map(self.url_dict))
+        mat = scipy.sparse.coo_matrix((values, (row, cols)), shape=(row.max() + 1, cols.max() + 1))
         self.als.fit(mat)
 
     def get_embeddings(self, emb_name: str = "emb"):
