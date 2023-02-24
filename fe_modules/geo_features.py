@@ -23,8 +23,17 @@ def get_travel(city_name_col):
     return (city_name_col != city_name_col.shift(1)).sum() - 1
 
 
+def process_utc(cities: pd.DataFrame, timezone_col: str = "timezone"):
+    cities[timezone_col] = cities[timezone_col].apply(lambda x: int(x.split("+")[1]))
+    return cities
+
+
 def map_cities(df: pd.DataFrame, folder_path: str = "../external_data", cities_path: str = 'cities_finally.csv'):
-    cities = pandas_reduce_mem_usage(pd.read_csv(f"{folder_path}/{cities_path}"))
+    cities = pandas_reduce_mem_usage(
+        process_utc(
+            pd.read_csv(f"{folder_path}/{cities_path}")
+        )
+    )
     df = df.merge(cities, on="city_name", how="left")
     return df
 
@@ -100,17 +109,16 @@ def haversine_np(lon1, lat1, lon2, lat2):
     return km
 
 
-def get_dist(points):
-    points = np.stack(points.to_numpy())
-    point_shifted = np.roll(points, 1, axis=0)
-    point_shifted[0] = np.array([np.nan, np.nan, np.nan])
-    temp = (point_shifted[:, 2] != points[:, 2])
-    points = np.delete(points[temp], 2, 1).astype(np.float32)[1:]
-    point_shifted = np.delete(point_shifted[temp], 2, 1).astype(np.float32)[1:]
-    return haversine_np(points[:, 0],
-                        points[:, 1],
-                        point_shifted[:, 0],
-                        point_shifted[:, 1]).mean()
+def get_dist(row):
+    row_shifted = row.shift(1)
+    temp = (row_shifted.city_name != row.city_name)
+    row = row[temp]
+    row_shifted = row_shifted[temp]
+    del temp
+    return haversine_np(row.geo_lat,
+                        row.geo_lon,
+                        row_shifted.geo_lat,
+                        row_shifted.geo_lon).mean()
 
 
 def get_agg_distance_of_travel(df: pd.DataFrame,
@@ -125,15 +133,11 @@ def get_agg_distance_of_travel(df: pd.DataFrame,
         col_name = alias
     else:
         col_name = f'{agg_col}_mean_travel_distance'
-    df['lat_lon'] = df[[target_col_lat, target_col_lon, city_name_col]].progress_apply(lambda r: tuple(r),
-                                                                                       axis=1).apply(np.array)
 
-    df = df.merge(df.sort_values(timestamp_col).groupby(agg_col)['lat_lon']
-                  .agg(geometry=get_dist).fillna(0).astype(np.float32)
-                  .rename(columns={'geometry': col_name}), how='left', on=agg_col)
-
-    del df['lat_lon']
-
+    df = df.merge(df.sort_values(timestamp_col).groupby(agg_col)[[target_col_lat,
+                                                                    target_col_lon,
+                                                                    city_name_col]].progress_apply(lambda x: get_dist(x)).
+                  fillna(0).astype(np.float32).to_frame(col_name), how='left', on=agg_col)
     if sort:
         return df.sort_values(by=agg_col)
 
