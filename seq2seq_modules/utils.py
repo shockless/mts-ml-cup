@@ -40,3 +40,14 @@ def fix_random_state(random_state: int = 42):
     np.random.seed(random_state)
     torch.manual_seed(random_state)
     torch.cuda.manual_seed_all(random_state)
+
+
+def coles_collate_fn(data):
+    batch_cat_features, batch_cont_features, batch_attention_mask, batch_target = data
+
+    cat_features = torch.cat([part for part in batch_cat_features], dim=0)
+    cont_features = torch.cat([part for part in batch_cont_features], dim=0)
+    attention_mask = torch.cat([part for part in batch_attention_mask], dim=0)
+    target = torch.cat([part for part in batch_target], dim=0)
+
+    return cat_features, cont_features, attention_mask, target

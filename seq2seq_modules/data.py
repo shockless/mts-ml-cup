@@ -1,4 +1,5 @@
 import gc
+import random
 
 import numpy as np
 import pandas as pd
@@ -265,9 +266,37 @@ class CoLESDataset(Dataset):
         self.__get_sequences()
 
     def __len__(self) -> int:
-        return len(self.cat_sequences)
+        return self.len
 
     def __getitem__(self, idx: int) -> tuple:
+        idx_of_subseq = idx % self.num_splits
+        left = idx_of_subseq
+        right = self.num_splits - idx_of_subseq - 1
+
+        # choose positive sample
+        possible_positive_idx = [i for i in range(idx - left, idx + right)]
+        possible_positive_idx.remove(idx)
+        positive_idx = random.choice(possible_positive_idx)
+
+        # choose negative sample
+        negative_idx = random.randint(0, self.__len__())
+        while negative_idx in possible_positive_idx or negative_idx == idx:
+            negative_idx = random.randint(0, self.__len__())
+
+        anchor_cat_features, anchor_cont_features, anchor_attention_mask, anchor_target = self.__build_sequence(idx)
+        positive_cat_features, positive_cont_features, positive_attention_mask, positive_target = self.__build_sequence(
+            positive_idx)
+        negative_cat_features, negative_cont_features, negative_attention_mask, negative_target = self.__build_sequence(
+            negative_idx)
+
+        cat_features = torch.cat([anchor_cat_features, positive_cat_features, negative_cat_features], dim=0)
+        cont_features = torch.cat([anchor_cont_features, positive_cont_features, negative_cont_features], dim=0)
+        attention_mask = torch.cat([anchor_attention_mask, positive_attention_mask, negative_attention_mask], dim=0)
+        target = [anchor_target, positive_target, negative_target]
+
+        return cat_features, cont_features, attention_mask, target
+
+    def __build_sequence(self, idx) -> tuple:
         cat_features = self.cat_sequences[idx]
         cont_features = self.cont_sequences[idx]
         target = self.targets[idx]
@@ -275,9 +304,9 @@ class CoLESDataset(Dataset):
         cat_features, attention_mask = self.__pad_and_truncate(cat_features)
         cont_features, attention_mask = self.__pad_and_truncate(cont_features)
 
-        cat_features = torch.tensor(cat_features).long()
-        cont_features = torch.tensor(cont_features).float()
-        attention_mask = torch.tensor(attention_mask).bool()
+        cat_features = torch.tensor(cat_features).long().unsqueeze(0)
+        cont_features = torch.tensor(cont_features).float().unsqueeze(0)
+        attention_mask = torch.tensor(attention_mask).bool().unsqueeze(0)
 
         return cat_features, cont_features, attention_mask, target
 
@@ -297,7 +326,7 @@ class CoLESDataset(Dataset):
 
         for i in tqdm(range(self.agg_col.shape[0])):
             if self.agg_col[i] != curr_val:
-                if i - curr_ind >= self.num_splits:
+                if i - curr_ind > self.num_splits:
                     self.cat_sequences.extend(
                         np.split(self.df.iloc[curr_ind:i][self.cat_features].to_numpy().astype("int32"),
                                  range(0, i - curr_ind, self.num_splits)
@@ -315,6 +344,8 @@ class CoLESDataset(Dataset):
                 target_id += 1
                 curr_ind = i
                 curr_val = self.agg_col[i]
+
+        self.len = len(self.cat_sequences)
 
         del self.df
         gc.collect()
