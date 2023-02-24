@@ -23,17 +23,8 @@ def get_travel(city_name_col):
     return (city_name_col != city_name_col.shift(1)).sum() - 1
 
 
-def process_utc(cities: pd.DataFrame, timezone_col: str = "timezone"):
-    cities[timezone_col] = cities[timezone_col].apply(lambda x: int(x.split("+")[1]))
-    return cities
-
-
 def map_cities(df: pd.DataFrame, folder_path: str = "../external_data", cities_path: str = 'cities_finally.csv'):
-    cities = pandas_reduce_mem_usage(
-        process_utc(
-            pd.read_csv(f"{folder_path}/{cities_path}")
-        )
-    )
+    cities = pandas_reduce_mem_usage(pd.read_csv(f"{folder_path}/{cities_path}"))
     df = df.merge(cities, on="city_name", how="left")
     return df
 
