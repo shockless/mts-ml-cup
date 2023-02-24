@@ -6,6 +6,7 @@ import numpy as np
 from modules.memory_utils import pandas_reduce_mem_usage
 
 from fe_modules.preprocessing import clean_os_type
+from fe_modules.geo_features import get_travel, get_dist
 
 
 class UserFE:
@@ -180,6 +181,43 @@ class UserFE:
         self.df[alias] = pd.DatetimeIndex(self.df["date_min"]).astype(int) / scaler
 
         self.df = self.df.drop(["date_min"], axis=1)
+
+    def get_agg_amount_of_travel(self,
+                                 df: pd.DataFrame,
+                                 agg_col: str = "user_id",
+                                 target_col: str = "city_name",
+                                 timestamp_col: str = "timestamp",
+                                 alias: str = None):
+        if alias:
+            col_name = alias
+        else:
+            col_name = f'{agg_col}_amount_of_travel'
+
+        self.df = self.df.merge(df.sort_values(timestamp_col).groupby(agg_col)[target_col].agg(
+            amount_of_travel=get_travel
+        ).rename(columns={'amount_of_travel': col_name})
+                                , how='left', on=agg_col)
+
+    def get_agg_distance_of_travel(self,
+                                   df: pd.DataFrame,
+                                   agg_col: str = "user_id",
+                                   target_col_lat: str = 'geo_lat',
+                                   target_col_lon: str = 'geo_lon',
+                                   timestamp_col: str = 'timestamp',
+                                   city_name_col: str = 'city_name',
+                                   alias: str = None):
+        if alias:
+            col_name = alias
+        else:
+            col_name = f'{agg_col}_mean_travel_distance'
+        df['lat_lon'] = df[[target_col_lat, target_col_lon, city_name_col]].progress_apply(lambda r: tuple(r),
+                                                                                           axis=1).apply(np.array)
+
+        self.df = self.df.merge(df.sort_values(timestamp_col).groupby(agg_col)['lat_lon']
+                                .agg(geometry=get_dist).fillna(0).astype(np.float32)
+                                .rename(columns={'geometry': col_name}), how='left', on=agg_col)
+
+        df = df.drop(["lat_lon"], axis=1)
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
