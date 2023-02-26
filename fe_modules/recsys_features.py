@@ -6,9 +6,7 @@ import joblib
 
 from scipy import sparse
 import os
-import bottleneck as bn
 from copy import deepcopy
-import sys
 import random
 import torch
 from torch import nn
@@ -56,7 +54,8 @@ class ALSWrapper:
 class RecVAEWrapper:
     def __init__(self,
                  hidden_dim: int = 600,
-                 latent_dim: int = 200
+                 latent_dim: int = 200,
+                 random_state: int = 42
                  ):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -65,10 +64,22 @@ class RecVAEWrapper:
         self.url_dict = None
         self.usr_dict = None
         self.user_embs = None
+        self.random_state = random_state
+        self.seed_everything()
+
+    def seed_everything(self):
+        random.seed(self.random_state)
+        os.environ['PYTHONHASHSEED'] = str(self.random_state)
+        np.random.seed(self.random_state)
+        torch.manual_seed(self.random_state)
+        torch.cuda.manual_seed(self.random_state)
+        torch.backends.cudnn.deterministic = True
+
+    seed_everything()
 
     def fit(self, df: pd.DataFrame, rows: str = "user_id", columns: str = "url_host", target: str = 'request_cnt',
             agg_fn: str = "sum", threshold: float = None, batch_size: int = 500, n_epochs: int = 20, beta=0.2,
-            gamma=0.005):
+            gamma=0.005, encoder_lr=5e-4, decoder_lr=5e-4):
         data_agg = df.groupby([rows, columns])[[rows, columns, target]].agg(
             {target: agg_fn}).reset_index().rename(columns={target: target + '_' + agg_fn})
         if threshold is None:
@@ -85,8 +96,7 @@ class RecVAEWrapper:
         mat = sparse.csr_matrix((np.ones_like(data_agg[rows]),
                                  (data_agg[rows], data_agg[columns])), dtype='float64',
                                 shape=(n_users, n_items))
-        batches_per_epoch = int(np.ceil(float(n_users) / batch_size))
-        anneal_cap = 0.2
+
         model_kwargs = {
             'hidden_dim': self.hidden_dim,
             'latent_dim': self.latent_dim,
@@ -101,8 +111,8 @@ class RecVAEWrapper:
         }
         decoder_params = set(self.model.decoder.parameters())
         encoder_params = set(self.model.encoder.parameters())
-        optimizer_encoder = torch.optim.Adam(encoder_params, lr=5e-4)
-        optimizer_decoder = torch.optim.Adam(decoder_params, lr=5e-4)
+        optimizer_encoder = torch.optim.Adam(encoder_params, lr=encoder_lr)
+        optimizer_decoder = torch.optim.Adam(decoder_params, lr=decoder_lr)
         not_alternating = True
 
         print('Training...')
@@ -119,7 +129,6 @@ class RecVAEWrapper:
             with torch.no_grad():
                 self.model.eval()
                 ratings = batch.get_ratings_to_dev()
-                pred = self.model(ratings, calculate_loss=False)
                 mu, _ = self.model.encoder(ratings, dropout_rate=0)
                 if self.user_embs is None:
                     self.user_embs = mu
