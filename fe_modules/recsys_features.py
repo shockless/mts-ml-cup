@@ -76,8 +76,6 @@ class RecVAEWrapper:
         torch.cuda.manual_seed(self.random_state)
         torch.backends.cudnn.deterministic = True
 
-    seed_everything()
-
     def fit(self, df: pd.DataFrame, rows: str = "user_id", columns: str = "url_host", target: str = 'request_cnt',
             agg_fn: str = "sum", threshold: float = None, batch_size: int = 500, n_epochs: int = 20, beta=0.2,
             gamma=0.005, encoder_lr=5e-4, decoder_lr=5e-4):
