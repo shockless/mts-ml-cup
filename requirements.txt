@@ -33,3 +33,5 @@ scipy
 dask
 
 geopandas
+tqdm
+bottleneck
