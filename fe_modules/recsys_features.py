@@ -17,10 +17,13 @@ from tqdm.notebook import tqdm
 
 
 class ALSWrapper:
-    def __init__(self, factors=50, iterations=30, use_gpu=False, regularization=0.1):
+    def __init__(self, factors=50, iterations=30, use_gpu=False, regularization=0.1, alpha=1.0, random_state=42):
         self.als = implicit.als.AlternatingLeastSquares(factors=factors,
-                                                        iterations=iterations, use_gpu=use_gpu,
-                                                        regularization=regularization)
+                                                        iterations=iterations,
+                                                        use_gpu=use_gpu,
+                                                        alpha=alpha,
+                                                        regularization=regularization,
+                                                        random_state=random_state)
         self.usr_dict = None
         self.url_dict = None
 
