@@ -11,6 +11,8 @@ wandb
 torch
 transformers
 torchmetrics
+sentencepiece
+protobuf==3.20.*
 
 matplotlib
 seaborn
