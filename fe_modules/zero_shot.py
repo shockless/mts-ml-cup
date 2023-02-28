@@ -8,20 +8,6 @@ from tqdm.auto import tqdm
 import torch
 
 
-class Dataset(torch.utils.data.Dataset):
-    def __init__(self, texts, labels):
-        self.labels = labels
-        self.texts = texts
-
-    def __len__(self):
-        return len(self.texts)
-
-    def __getitem__(self, index):
-        X = self.texts[index]
-        y = self.labels[index]
-        return X, y
-
-
 class ZeroShot:
     def __init__(self, model_name: str = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli", device: str = "cuda:0"):
         self.device = device
