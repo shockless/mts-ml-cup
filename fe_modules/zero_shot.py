@@ -13,7 +13,7 @@ class ZeroShot:
         self.device = device
         self.model = pipeline("zero-shot-classification", model=model_name, device=torch.device(self.device))
 
-    def predict_proba(self, texts: list, labels: list, batch_size: int = 128, multi_label: bool = False):
+    def predict_proba(self, texts: list, labels: list, batch_size: int = 128, multi_label: bool = False) -> pd.DataFrame:
         dataloader = DataLoader(texts, batch_size=batch_size, shuffle=False)
 
         outputs = list()
@@ -33,7 +33,7 @@ class ZeroShot:
 
         return df
 
-    def __call__(self, texts: list, labels: list, batch_size: int = 128, multi_label: bool = False):
+    def __call__(self, texts: list, labels: list, batch_size: int = 128, multi_label: bool = False) -> pd.DataFrame:
         return self.predict_proba(texts, labels, batch_size, multi_label)
 
 # import torch
