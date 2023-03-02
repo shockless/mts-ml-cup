@@ -233,26 +233,35 @@ class UserFE:
         else:
             col_name = f'lag_{agg_col}_group_{agg_name}'
 
-        df = df[df[date_col] > (df["date_max"] - timedelta(weeks=weeks_number))]
+        df_copy = df
 
-        if agg_name == "mean":
-            agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(columns={target_col: col_name}).reset_index()
-        elif agg_name == "count":
-            agg = df.groupby(agg_col)[target_col].count().to_frame().rename(
-                columns={target_col: col_name}).reset_index()
-        elif agg_name == "sum":
-            agg = df.groupby(agg_col)[target_col].sum().to_frame().rename(columns={target_col: col_name}).reset_index()
-        elif agg_name == "max":
-            agg = df.groupby(agg_col)[target_col].max().to_frame().rename(columns={target_col: col_name}).reset_index()
-        elif agg_name == "min":
-            agg = df.groupby(agg_col)[target_col].min().to_frame().rename(columns={target_col: col_name}).reset_index()
-        elif agg_name == "nunique":
-            agg = df.groupby(agg_col)[target_col].nunique().to_frame().rename(
-                columns={target_col: col_name}).reset_index()
-        else:
-            raise Exception(f"'agg_name' can't take value '{agg_name}'")
+        for i in range(weeks_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
+                    df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
 
-        self.df = self.df.merge(agg, how="left", on=agg_col)
+            if agg_name == "mean":
+                agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            elif agg_name == "count":
+                agg = df.groupby(agg_col)[target_col].count().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            elif agg_name == "sum":
+                agg = df.groupby(agg_col)[target_col].sum().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            elif agg_name == "max":
+                agg = df.groupby(agg_col)[target_col].max().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            elif agg_name == "min":
+                agg = df.groupby(agg_col)[target_col].min().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            elif agg_name == "nunique":
+                agg = df.groupby(agg_col)[target_col].nunique().to_frame().rename(
+                    columns={target_col: col_name + f"_{i}"}).reset_index()
+            else:
+                raise Exception(f"'agg_name' can't take value '{agg_name}'")
+
+            self.df = self.df.merge(agg, how="left", on=agg_col)
+            self.df[col_name + f"_{i}"] = self.df[col_name + f"_{i}"].fillna(0)
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
