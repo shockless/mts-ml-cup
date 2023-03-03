@@ -28,7 +28,7 @@ def pandas_reduce_mem_usage(df: pd.DataFrame, columns=None) -> pd.DataFrame:
                 df[col] = df[col].astype(np.int32)
             elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
                 df[col] = df[col].astype(np.int64)
-        elif str(col_type)[:4] == "float":
+        elif str(col_type)[:5] == "float":
             c_min = df[col].min()
             c_max = df[col].max()
             if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:

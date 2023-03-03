@@ -2,6 +2,7 @@ import category_encoders as ce
 import joblib
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, KFold
+from tqdm.auto import tqdm
 
 from modules.memory_utils import pandas_reduce_mem_usage
 
@@ -57,7 +58,7 @@ class CatBoostEncoderWrapper:
         oof_target = []
 
         skf = KFold(n_splits=self.n_folds, random_state=self.random_state, shuffle=True)
-        for i, (train_index, val_index) in enumerate(skf.split(df, df[target_col])):
+        for i, (train_index, val_index) in tqdm(enumerate(skf.split(df, df[target_col]))):
             train_df = df.iloc[train_index].sort_values(self.sort_col)
             val_df = df.iloc[val_index].sort_values(self.sort_col)
 
