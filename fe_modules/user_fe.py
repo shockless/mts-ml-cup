@@ -237,7 +237,7 @@ class UserFE:
 
         for i in range(weeks_number):
             df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
-                    df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
 
             if agg_name == "mean":
                 agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(
@@ -262,6 +262,75 @@ class UserFE:
 
             self.df = self.df.merge(agg, how="left", on=agg_col)
             self.df[col_name + f"_{i}"] = self.df[col_name + f"_{i}"].fillna(0)
+
+    def get_lag_top_n_mode(self,
+                           df: pd.DataFrame,
+                           agg_col: str = "user_id",
+                           target_col: str = "url_host",
+                           n: int = 5,
+                           date_col: str = "datetime",
+                           weeks_number: int = 4,
+                           alias: str = None):
+        if alias:
+            col_name = alias
+        else:
+            col_name = f'lag_{agg_col}_{target_col}_mode'
+
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        def n_mode(s):
+            temp = s.value_counts()[:n].index
+            temp = np.append(temp, np.array(["<blank>"] * (n - len(temp))))
+            return temp
+
+        df_copy = df
+
+        for i in range(weeks_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+
+            agg = df.groupby(agg_col)[target_col].agg(n_mode).to_frame()
+
+            agg = pd.DataFrame(np.concatenate((np.expand_dims(agg.index.to_numpy().astype(object), axis=1),
+                                               np.stack(agg[target_col].values)), axis=1),
+                               columns=agg_col + [f"{col_name}_{i}_{j}" for j in range(n)])
+
+            self.df = self.df.merge(agg, how="left", on=agg_col)
+
+    def get_lag_ratio_part_of_day(self,
+                                  df: pd.DataFrame,
+                                  agg_col: str = "user_id",
+                                  date_col: str = "datetime",
+                                  weeks_number: int = 4):
+        if isinstance(agg_col, str):
+            agg_col = [agg_col]
+
+        def ratio(s):
+            temp = s.value_counts()
+            set_ = {"morning", "day", "evening", "night"}
+            for i in set_ - set(temp.index):
+                temp[i] = 0
+            n = s.shape[0]
+            return np.array([temp["morning"] / n, temp["day"] / n, temp["evening"] / n, temp["night"] / n])
+
+        df_copy = df
+
+        for i in range(weeks_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+
+            agg = df.groupby(agg_col)["part_of_day"].agg(ratio).to_frame()
+            agg = pd.DataFrame(np.concatenate((np.expand_dims(agg.index.to_numpy().astype(object), axis=1),
+                                               np.stack(agg["part_of_day"].values)), axis=1),
+                               columns=agg_col + [f"morning_{i}", f"day_{i}", f"evening_{i}", f"night_{i}"])
+
+            self.df = self.df.merge(agg, how="left", on=agg_col)
+
+            self.df[f"morning_{i}"] = self.df[f"morning_{i}"].astype(np.float64)
+            self.df[f"day_{i}"] = self.df[f"day_{i}"].astype(np.float64)
+            self.df[f"evening_{i}"] = self.df[f"evening_{i}"].astype(np.float64)
+            self.df[f"night_{i}"] = self.df[f"night_{i}"].astype(np.float64)
 
     def pandas_reduce_mem_usage(self, *args):
         self.df = pandas_reduce_mem_usage(self.df, args)
