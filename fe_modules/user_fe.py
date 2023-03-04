@@ -225,7 +225,7 @@ class UserFE:
                     agg_col: str = "user_id",
                     target_col: str = "request_cnt",
                     date_col: str = "datetime",
-                    weeks_number: int = 4,
+                    months_number: int = 4,
                     agg_name: str = None,
                     alias: str = None):
         if alias:
@@ -235,9 +235,9 @@ class UserFE:
 
         df_copy = df
 
-        for i in range(weeks_number):
-            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
-                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+        for i in range(months_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=4 * i))) & (
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=4 * (i + 1))))]
 
             if agg_name == "mean":
                 agg = df.groupby(agg_col)[target_col].mean().to_frame().rename(
@@ -269,7 +269,7 @@ class UserFE:
                            target_col: str = "url_host",
                            n: int = 5,
                            date_col: str = "datetime",
-                           weeks_number: int = 4,
+                           months_number: int = 4,
                            alias: str = None):
         if alias:
             col_name = alias
@@ -286,9 +286,9 @@ class UserFE:
 
         df_copy = df
 
-        for i in range(weeks_number):
-            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
-                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+        for i in range(months_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=4 * i))) & (
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=4 * (i + 1))))]
 
             agg = df.groupby(agg_col)[target_col].agg(n_mode).to_frame()
 
