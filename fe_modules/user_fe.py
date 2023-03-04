@@ -302,7 +302,7 @@ class UserFE:
                                   df: pd.DataFrame,
                                   agg_col: str = "user_id",
                                   date_col: str = "datetime",
-                                  weeks_number: int = 4):
+                                  months_number: int = 4):
         if isinstance(agg_col, str):
             agg_col = [agg_col]
 
@@ -316,9 +316,9 @@ class UserFE:
 
         df_copy = df
 
-        for i in range(weeks_number):
-            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=i))) & (
-                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=i + 1)))]
+        for i in range(months_number):
+            df = df_copy[(df_copy[date_col] < (df_copy["date_max"] - timedelta(weeks=4 * i))) & (
+                df_copy[date_col] > (df_copy["date_max"] - timedelta(weeks=4 * (i + 1))))]
 
             agg = df.groupby(agg_col)["part_of_day"].agg(ratio).to_frame()
             agg = pd.DataFrame(np.concatenate((np.expand_dims(agg.index.to_numpy().astype(object), axis=1),
