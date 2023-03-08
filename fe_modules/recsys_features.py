@@ -82,7 +82,7 @@ class RecVAEWrapper:
         data_agg = df.groupby([rows, columns])[[rows, columns, target]].agg(
             {target: agg_fn}).reset_index().rename(columns={target: target + '_' + agg_fn})
         if threshold is None:
-            threshold = data_agg[target + '_' + agg_fn].mean()
+            threshold = 0
         data_agg[target + '_' + agg_fn] = (data_agg[target + '_' + agg_fn] > threshold).astype(int)
         url_set = set(df[columns])
         self.url_dict = {url: idurl for url, idurl in zip(url_set, range(len(url_set)))}
